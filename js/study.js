@@ -1,908 +1,499 @@
-// Main study logic for comparison videos
+// Audio-driven lip-sync user study — main logic.
+// Renders sections one at a time, loads 4 synced videos per section, collects
+// ratings on the 3 unlabeled (non-GT) videos, submits to /api/submit-results.
 
-class UserStudy {
-    constructor() {
-        this.studyConfig = null;
-        this.promptTexts = null;
-        this.currentComparisonSet = 0;
-        this.currentVideoIndex = 0;
-        this.currentVideos = [];
-        this.responses = {};
-        this.studyData = null;
-        this.isInitialized = false;
-        
-        // Track which video IDs have been used across comparison sets
-        // Separate tracking for 30s and 60s videos to prevent overlap
-        this.usedVideoIds = {
-            '30s': new Set(),  // Track used 30s video IDs (e.g., '30s_2', '30s_24')
-            '60s': new Set()   // Track used 60s video IDs (e.g., '60s_2', '60s_28')
-        };
+(() => {
+'use strict';
 
-        this.init();
+const STORAGE_KEY      = 'lipForcingStudyState';
+const STORAGE_RESULTS  = 'lipForcingStudyResults';
+
+let CONFIG = null;
+let STATE = {
+    participantId: null,
+    demographics: {},
+    startTime: null,
+    sectionIndex: 0,         // 0..N-1; -1 = demographics not yet done
+    assignment: [],          // length = N samples; each entry = [model_a, model_b, model_c]  (display order)
+    responses: [],           // length = N; each entry: { sampleStem, slots: [{model, scores: {sync,quality,id_pres,natural}}] for 3 result videos }
+};
+
+let SYNC_SUPPRESS = false;
+
+// ---------------- INIT ----------------
+
+async function init() {
+    try {
+        CONFIG = await fetch('data/study_config.json').then(r => r.json());
+    } catch (e) {
+        document.body.innerHTML = '<p style="padding:24px;color:red">Failed to load study config: ' + e + '</p>';
+        return;
     }
 
-    async init() {
+    document.getElementById('study-title').textContent = CONFIG.study_title;
+
+    // Restore prior progress if any
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
         try {
-            // Check if user has valid study data
-            this.studyData = getStudyData();
-            if (!this.studyData) {
-                window.location.href = 'index.html';
-                return;
+            const parsed = JSON.parse(saved);
+            if (parsed.participantId && parsed.assignment && parsed.assignment.length === CONFIG.samples.length) {
+                STATE = parsed;
             }
-
-            // Load configuration
-            await this.loadConfiguration();
-
-            // Initialize responses
-            this.initializeResponses();
-            
-            // Load saved progress (including used video IDs) BEFORE loading comparison set
-            // This ensures we don't reuse videos that were already shown
-            this.loadResponses();
-
-            // Setup UI
-            this.setupUI();
-
-            // Load first comparison set
-            await this.loadComparisonSet();
-
-            this.isInitialized = true;
-
-        } catch (error) {
-            console.error('Error initializing study:', error);
-            this.showError(`Failed to initialize study: ${error.message}. Please refresh and try again.`);
-        }
+        } catch {}
     }
 
-    async loadConfiguration() {
-        // Load study configuration
-        this.studyConfig = await loadJSON('data/study_config.json');
-        if (!this.studyConfig) {
-            throw new Error('Failed to load study configuration');
-        }
-
-        // Load prompt texts
-        this.promptTexts = await loadJSON('prompt_text.json');
-        if (!this.promptTexts) {
-            console.warn('Failed to load prompt texts - prompts will not be displayed');
-        }
-    }
-
-    initializeResponses() {
-        // Initialize responses for all comparison sets
-        this.responses = {};
-        this.studyConfig.comparison_sets.forEach(set => {
-            this.responses[set.name] = {};
-        });
-    }
-
-    async loadComparisonSet() {
-        if (this.currentComparisonSet >= this.studyConfig.comparison_sets.length) {
-            await this.showCompletion();
-            return;
-        }
-
-        const comparisonSet = this.studyConfig.comparison_sets[this.currentComparisonSet];
-        
-        // Show loading state
-        const loadingState = document.getElementById('loadingState');
-        const studyInterface = document.getElementById('studyInterface');
-        
-        if (loadingState) loadingState.style.display = 'block';
-        if (studyInterface) studyInterface.style.display = 'none';
-
-        // Load videos for this comparison set
-        await this.loadVideosForComparison(comparisonSet);
-        
-        // Save used video IDs after loading a new comparison set
-        this.saveResponses();
-
-        // Update UI
-        this.updateProgress();
-        this.currentVideoIndex = 0;
-        
-        // Load first video
-        this.loadCurrentVideo();
-    }
-
-    async loadVideosForComparison(comparisonSet) {
-        // Get existing videos for this comparison set
-        const existingVideos = this.getExistingVideos(comparisonSet.video_folder);
-        
-        // Separate videos by duration (30s vs 60s)
-        const videos30s = existingVideos.filter(v => v.filename.startsWith('30s_'));
-        const videos60s = existingVideos.filter(v => v.filename.startsWith('60s_'));
-        
-        // Extract video ID (basename) from filename for tracking
-        // e.g., '30s_2_comparison.mp4' -> '30s_2'
-        const getVideoId = (filename) => {
-            return filename.replace('_comparison.mp4', '').replace('.mp4', '');
-        };
-        
-        // Filter out videos that have already been used in previous comparison sets
-        // Only filter within the same duration category (30s vs 30s, 60s vs 60s)
-        const available30s = videos30s.filter(v => {
-            const videoId = getVideoId(v.filename);
-            return !this.usedVideoIds['30s'].has(videoId);
-        });
-        
-        const available60s = videos60s.filter(v => {
-            const videoId = getVideoId(v.filename);
-            return !this.usedVideoIds['60s'].has(videoId);
-        });
-        
-        // Check if we have enough videos available
-        if (available30s.length < 2) {
-            console.warn(`Warning: Only ${available30s.length} unused 30s videos available, need 2`);
-        }
-        
-        // For 60s videos: if we don't have enough unused videos, resample from the remaining 6
-        // When only 1 unused video remains, resample the second video from the 6 that were used previously
-        let selected60s = [];
-        if (available60s.length >= 2) {
-            // Normal case: we have enough unused videos
-            const shuffled60s = this.shuffleArray([...available60s]);
-            selected60s = shuffled60s.slice(0, 2);
-        } else if (available60s.length === 1) {
-            // Special case: only 1 unused video remains
-            // Use that 1 unused video, then resample 1 more from the 6 that were used previously
-            const used60sIds = Array.from(this.usedVideoIds['60s']);
-            const all60sIds = videos60s.map(v => getVideoId(v.filename));
-            
-            // Get the 6 videos that were used in previous sets
-            const previouslyUsed6Ids = all60sIds.filter(id => used60sIds.includes(id));
-            const previouslyUsed6Videos = videos60s.filter(v => {
-                const videoId = getVideoId(v.filename);
-                return previouslyUsed6Ids.includes(videoId);
-            });
-            
-            // Use the 1 unused video
-            selected60s.push(available60s[0]);
-            
-            // Resample 1 more from the 6 previously used videos
-            const shuffledUsed6 = this.shuffleArray([...previouslyUsed6Videos]);
-            selected60s.push(shuffledUsed6[0]);
-            
-            console.log(`Only 1 unused 60s video. Using it + resampling 1 from ${previouslyUsed6Ids.length} previously used:`, previouslyUsed6Ids);
+    if (!STATE.participantId) {
+        // Fresh start: assign and render demographics
+        STATE.participantId = 'p_' + Math.random().toString(36).slice(2, 10);
+        STATE.startTime = Date.now();
+        STATE.assignment = generateAssignment();
+        STATE.responses = STATE.assignment.map((slot_models, i) => ({
+            sampleStem: CONFIG.samples[i],
+            slots: slot_models.map(m => ({ model: m, scores: {} })),
+        }));
+        STATE.sectionIndex = -1;
+        persist();
+        showDemographics();
+    } else {
+        // Resume mid-study or after demographics
+        if (STATE.sectionIndex < 0) {
+            showDemographics();
+        } else if (STATE.sectionIndex >= CONFIG.samples.length) {
+            showCompletion();
         } else {
-            // Fallback: use whatever is available
-            const shuffled60s = this.shuffleArray([...available60s]);
-            selected60s = shuffled60s.slice(0, Math.min(2, available60s.length));
-            console.warn(`Warning: Only ${available60s.length} unused 60s videos available`);
+            renderSection(STATE.sectionIndex);
         }
-        
-        // Randomly select 2 from 30s videos
-        const shuffled30s = this.shuffleArray([...available30s]);
-        const selected30s = shuffled30s.slice(0, Math.min(2, shuffled30s.length));
-        
-        // Mark selected videos as used
-        selected30s.forEach(video => {
-            const videoId = getVideoId(video.filename);
-            this.usedVideoIds['30s'].add(videoId);
-            console.log(`Marked ${videoId} as used (30s)`);
-        });
-        
-        selected60s.forEach(video => {
-            const videoId = getVideoId(video.filename);
-            this.usedVideoIds['60s'].add(videoId);
-            console.log(`Marked ${videoId} as used (60s)`);
-        });
-        
-        // Combine selected videos
-        const selectedFiles = [...selected30s, ...selected60s];
-        
-        // Shuffle the final selection to randomize order
-        const shuffledSelection = this.shuffleArray(selectedFiles);
-        
-        this.currentVideos = shuffledSelection.map(video => ({
-            filename: video.filename,
-            path: `${comparisonSet.video_folder}/${video.filename}`,
-            basename: video.basename
-        }));
-    }
-
-    shuffleArray(array) {
-        const shuffled = [...array];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        return shuffled;
-    }
-
-    shuffleVideos() {
-        for (let i = this.currentVideos.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [this.currentVideos[i], this.currentVideos[j]] = [this.currentVideos[j], this.currentVideos[i]];
-        }
-    }
-
-    loadCurrentVideo() {
-        if (this.currentVideoIndex >= this.currentVideos.length) {
-            // Move to next comparison set
-            this.currentComparisonSet++;
-            this.loadComparisonSet();
-            return;
-        }
-
-        const video = this.currentVideos[this.currentVideoIndex];
-        const comparisonSet = this.studyConfig.comparison_sets[this.currentComparisonSet];
-        
-        // Display prompt text
-        const currentPromptTextEl = document.getElementById('currentPromptText');
-        if (currentPromptTextEl && this.promptTexts) {
-            const promptText = this.promptTexts[video.basename];
-            if (promptText) {
-                currentPromptTextEl.textContent = promptText;
-            } else {
-                currentPromptTextEl.textContent = 'Prompt not available for this video.';
-            }
-        } else if (currentPromptTextEl) {
-            currentPromptTextEl.textContent = 'Loading prompt...';
-        }
-
-        // Load video
-        const videoElement = document.getElementById('comparisonVideo');
-        if (videoElement) {
-            console.log('Loading video:', video.path);
-            
-            // Clear any previous error states
-            videoElement.classList.remove('video-error');
-            
-            // Configure video for seeking BEFORE setting source
-            videoElement.controls = true; // Enable controls (including timeline)
-            videoElement.muted = true; // Muted for autoplay compatibility
-            videoElement.preload = 'auto'; // Preload video data for seeking
-            videoElement.autoplay = false; // Don't autoplay - let user control playback
-            
-            // Make video focusable for keyboard controls
-            videoElement.setAttribute('tabindex', '0');
-            
-            // Set video source
-            videoElement.src = video.path;
-            
-            // Force video to load
-            videoElement.load();
-            
-            // Focus video element so keyboard controls work
-            setTimeout(() => {
-                videoElement.focus();
-            }, 100);
-            
-            // Add better error handling
-            videoElement.onerror = (e) => {
-                console.error('Video loading error details:', {
-                    error: e,
-                    src: videoElement.src,
-                    networkState: videoElement.networkState,
-                    readyState: videoElement.readyState,
-                    currentTime: videoElement.currentTime,
-                    duration: videoElement.duration
-                });
-                
-                // Mark video as error state
-                videoElement.classList.add('video-error');
-                
-                // Try to verify if file exists by making a HEAD request
-                this.verifyVideoFile(video.path);
-            };
-            
-            videoElement.onloadstart = () => {
-                console.log('비디오 로딩 시작:', video.path);
-            };
-            
-            videoElement.oncanplay = () => {
-                console.log('비디오 재생 준비 완료:', video.path);
-                videoElement.classList.remove('video-error');
-            };
-            
-            videoElement.onloadedmetadata = () => {
-                console.log('비디오 메타데이터 로드됨:', {
-                    src: video.path,
-                    duration: videoElement.duration,
-                    videoWidth: videoElement.videoWidth,
-                    videoHeight: videoElement.videoHeight
-                });
-            };
-            
-            // Ensure video is seekable once enough data is loaded
-            videoElement.oncanplaythrough = () => {
-                console.log('비디오 전체 재생 가능 (seeking enabled):', video.path);
-                videoElement.controls = true;
-                // Ensure seeking is enabled
-                if (videoElement.seekable.length > 0) {
-                    console.log('Video is seekable, range:', videoElement.seekable.start(0), 'to', videoElement.seekable.end(0));
-                }
-            };
-            
-            // Enable seeking as soon as we have some data
-            videoElement.onloadeddata = () => {
-                console.log('Video data loaded, enabling seeking');
-                videoElement.controls = true;
-            };
-            
-            videoElement.onprogress = () => {
-                if (videoElement.buffered.length > 0 && videoElement.seekable.length > 0) {
-                    // Video has buffered and seekable data
-                    videoElement.controls = true;
-                    console.log('Video buffered, seeking should work');
-                }
-            };
-            
-            // Ensure video controls are always enabled and interactive
-            videoElement.onloadedmetadata = () => {
-                videoElement.controls = true;
-                // Ensure the video can be controlled
-                if (videoElement.seekable.length > 0) {
-                    console.log('Video metadata loaded, seeking range:', 
-                        videoElement.seekable.start(0), 'to', videoElement.seekable.end(0));
-                }
-            };
-            
-            // Add explicit keyboard event handlers for seeking
-            videoElement.addEventListener('keydown', (e) => {
-                // Don't prevent default - let browser handle video controls
-                // But ensure video is focused
-                if (e.target !== videoElement) {
-                    videoElement.focus();
-                }
-            });
-            
-            // Ensure clicking on video focuses it
-            videoElement.addEventListener('click', () => {
-                videoElement.focus();
-            });
-        }
-        
-        // Reset form
-        const choiceForm = document.getElementById('choiceForm');
-        if (choiceForm) {
-            choiceForm.reset();
-        }
-        
-        const submitChoice = document.getElementById('submitChoice');
-        if (submitChoice) {
-            submitChoice.disabled = true;
-        }
-
-        // Load existing response if any
-        this.loadExistingResponse();
-
-        // Hide loading, show interface
-        const loadingState = document.getElementById('loadingState');
-        if (loadingState) loadingState.style.display = 'none';
-        
-        const studyInterface = document.getElementById('studyInterface');
-        if (studyInterface) studyInterface.style.display = 'block';
-
-        // Update progress
-        this.updateProgress();
-    }
-
-    loadExistingResponse() {
-        const comparisonSet = this.studyConfig.comparison_sets[this.currentComparisonSet];
-        const video = this.currentVideos[this.currentVideoIndex];
-        const response = this.responses[comparisonSet.name][video.filename];
-
-        if (response && response.answers) {
-            // Load answers for new multi-question format
-            for (const [questionName, answer] of Object.entries(response.answers)) {
-                const radio = document.querySelector(`input[name="${questionName}"][value="${answer}"]`);
-                if (radio) {
-                    radio.checked = true;
-                }
-            }
-            this.checkAllQuestionsAnswered();
-        } else if (typeof response === 'string') {
-            // Legacy format compatibility - convert single choice to overall_quality
-            const radio = document.querySelector(`input[name="overall_quality"][value="${response}"]`);
-            if (radio) {
-                radio.checked = true;
-                this.checkAllQuestionsAnswered();
-            }
-        }
-    }
-
-    setupUI() {
-
-        // Setup choice form
-        const choiceForm = document.getElementById('choiceForm');
-        if (choiceForm) {
-            choiceForm.addEventListener('change', () => {
-                this.checkAllQuestionsAnswered();
-            });
-
-            choiceForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.submitChoice();
-            });
-        }
-
-        // Setup navigation buttons
-        const prevVideo = document.getElementById('prevVideo');
-        if (prevVideo) {
-            prevVideo.addEventListener('click', () => {
-                this.navigateVideo(-1);
-            });
-        }
-
-        const nextVideo = document.getElementById('nextVideo');
-        if (nextVideo) {
-            nextVideo.addEventListener('click', () => {
-                this.navigateVideo(1);
-            });
-        }
-
-        // Setup video controls
-        const video = document.getElementById('comparisonVideo');
-        if (video) {
-            // Basic video event logging (detailed error handling is now in loadCurrentVideo)
-            video.addEventListener('loadstart', () => {
-                console.log('비디오 로딩 시작됨:', video.src);
-            });
-
-            video.addEventListener('canplay', () => {
-                console.log('비디오 재생 가능:', video.src);
-            });
-        }
-    }
-
-    checkAllQuestionsAnswered() {
-        const questionNames = [
-            'color_consistency',
-            'dynamic_motion', 
-            'subject_consistency',
-            'overall_quality'
-        ];
-        
-        let allAnswered = true;
-        for (const questionName of questionNames) {
-            const answered = document.querySelector(`input[name="${questionName}"]:checked`);
-            if (!answered) {
-                allAnswered = false;
-                break;
-            }
-        }
-        
-        const submitChoice = document.getElementById('submitChoice');
-        if (submitChoice) submitChoice.disabled = !allAnswered;
-    }
-
-    async verifyVideoFile(videoPath) {
-        try {
-            console.log('비디오 파일 존재 확인 중:', videoPath);
-            
-            const response = await fetch(videoPath, { method: 'HEAD' });
-            
-            if (response.ok) {
-                const contentType = response.headers.get('content-type');
-                const contentLength = response.headers.get('content-length');
-                
-                console.log('비디오 파일 정보:', {
-                    path: videoPath,
-                    status: response.status,
-                    contentType: contentType,
-                    contentLength: contentLength,
-                    size: contentLength ? `${(contentLength / 1024 / 1024).toFixed(2)} MB` : 'Unknown'
-                });
-                
-                if (!contentType || !contentType.startsWith('video/')) {
-                    this.showError(`파일이 올바른 비디오 형식이 아닙니다: ${videoPath}`);
-                } else {
-                    this.showError(`비디오 파일은 존재하지만 로드할 수 없습니다: ${videoPath}. 브라우저 호환성 문제일 수 있습니다.`);
-                }
-            } else {
-                console.error('비디오 파일이 존재하지 않습니다:', {
-                    path: videoPath,
-                    status: response.status,
-                    statusText: response.statusText
-                });
-                
-                this.showError(`비디오 파일을 찾을 수 없습니다: ${videoPath} (HTTP ${response.status})`);
-            }
-        } catch (error) {
-            console.error('비디오 파일 확인 중 오류:', error);
-            this.showError(`네트워크 오류로 인해 비디오 파일을 확인할 수 없습니다: ${videoPath}`);
-        }
-    }
-
-    submitChoice() {
-        const choiceForm = document.getElementById('choiceForm');
-        if (!choiceForm) {
-            this.showError('Form not found. Please refresh the page.');
-            return;
-        }
-        
-        const formData = new FormData(choiceForm);
-        
-        // Collect all answers
-        const questionNames = [
-            'color_consistency',
-            'dynamic_motion', 
-            'subject_consistency',
-            'overall_quality'
-        ];
-        
-        const answers = {};
-        let allAnswered = true;
-        
-        for (const questionName of questionNames) {
-            const answer = formData.get(questionName);
-            if (!answer) {
-                allAnswered = false;
-                break;
-            }
-            answers[questionName] = answer;
-        }
-        
-        if (!allAnswered) {
-            alert('Please answer all questions before submitting.');
-            return;
-        }
-
-        // Save responses
-        const comparisonSet = this.studyConfig.comparison_sets[this.currentComparisonSet];
-        const video = this.currentVideos[this.currentVideoIndex];
-        this.responses[comparisonSet.name][video.filename] = {
-            answers: answers,
-            timestamp: new Date().toISOString()
-        };
-
-        // Save to localStorage
-        this.saveResponses();
-
-        // Move to next video
-        this.currentVideoIndex++;
-        this.loadCurrentVideo();
-    }
-
-    async navigateVideo(direction) {
-        const newIndex = this.currentVideoIndex + direction;
-        
-        if (newIndex >= 0 && newIndex < this.currentVideos.length) {
-            this.currentVideoIndex = newIndex;
-            this.loadCurrentVideo();
-        } else if (direction > 0 && newIndex >= this.currentVideos.length) {
-            // Move to next comparison set
-            this.currentComparisonSet++;
-            this.currentVideoIndex = 0;
-            await this.loadComparisonSet();
-        } else if (direction < 0 && this.currentComparisonSet > 0) {
-            // Move to previous comparison set
-            this.currentComparisonSet--;
-            this.currentVideoIndex = 3; // Last video in previous set (now 4 videos per set)
-            await this.loadComparisonSet();
-        }
-    }
-
-    updateProgress() {
-        const totalVideos = this.studyConfig.comparison_sets.length * 4; // 4 videos per set = 16 total
-        const completedVideos = this.currentComparisonSet * 4 + this.currentVideoIndex;
-        const progressPercent = (completedVideos / totalVideos) * 100;
-
-        const currentProgressEl = document.getElementById('currentProgress');
-        if (currentProgressEl) currentProgressEl.textContent = completedVideos;
-        
-        const totalProgressEl = document.getElementById('totalProgress');
-        if (totalProgressEl) totalProgressEl.textContent = totalVideos;
-        
-        const progressBar = document.getElementById('progressBar');
-        if (progressBar) progressBar.style.width = `${progressPercent}%`;
-    }
-
-    saveResponses() {
-        localStorage.setItem('userStudyResponses', JSON.stringify(this.responses));
-        localStorage.setItem('userStudyProgress', JSON.stringify({
-            currentComparisonSet: this.currentComparisonSet,
-            currentVideoIndex: this.currentVideoIndex
-        }));
-        
-        // Save used video IDs to prevent reusing videos on page refresh
-        localStorage.setItem('userStudyUsedVideoIds', JSON.stringify({
-            '30s': Array.from(this.usedVideoIds['30s']),
-            '60s': Array.from(this.usedVideoIds['60s'])
-        }));
-    }
-
-    loadResponses() {
-        const saved = localStorage.getItem('userStudyResponses');
-        if (saved) {
-            this.responses = JSON.parse(saved);
-        }
-
-        const progress = localStorage.getItem('userStudyProgress');
-        if (progress) {
-            const progressData = JSON.parse(progress);
-            this.currentComparisonSet = progressData.currentComparisonSet || 0;
-            this.currentVideoIndex = progressData.currentVideoIndex || 0;
-        }
-        
-        // Restore used video IDs from localStorage to prevent reusing videos
-        const savedUsedIds = localStorage.getItem('userStudyUsedVideoIds');
-        if (savedUsedIds) {
-            try {
-                const usedIds = JSON.parse(savedUsedIds);
-                this.usedVideoIds['30s'] = new Set(usedIds['30s'] || []);
-                this.usedVideoIds['60s'] = new Set(usedIds['60s'] || []);
-                console.log('Restored used video IDs:', {
-                    '30s': Array.from(this.usedVideoIds['30s']),
-                    '60s': Array.from(this.usedVideoIds['60s'])
-                });
-            } catch (e) {
-                console.warn('Failed to restore used video IDs:', e);
-            }
-        }
-    }
-
-    async showCompletion() {
-        // Generate final results
-        const results = this.generateResults();
-        
-        // Save final results
-        localStorage.setItem('userStudyFinalResults', JSON.stringify(results));
-
-        // Show loading message
-        const loadingState = document.getElementById('loadingState');
-        const studyInterface = document.getElementById('studyInterface');
-        
-        if (loadingState) {
-            loadingState.style.display = 'block';
-            const loadingText = document.getElementById('loadingText');
-            if (loadingText) loadingText.textContent = 'Submitting your results...';
-        }
-        if (studyInterface) studyInterface.style.display = 'none';
-
-        // Try to submit results to GitHub
-        try {
-            await this.submitResultsToGitHub(results);
-            this.showSuccessCompletion(results);
-        } catch (error) {
-            console.error('Failed to submit results:', error);
-            this.showManualCompletion(results);
-        }
-    }
-
-    async submitResultsToGitHub(results) {
-        // Use Vercel serverless function to submit results securely
-        // The GitHub token is stored server-side and never exposed to the client
-        
-        // Determine API endpoint based on environment
-        // For Vercel: use /api/submit-results
-        // For local development: use http://localhost:3000/api/submit-results (if running Vercel dev)
-        // Fallback: try relative path first (works on Vercel)
-        const apiEndpoint = '/api/submit-results';
-        
-        try {
-            const response = await fetch(apiEndpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(results)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `Server error: ${response.status}`);
-            }
-
-            const result = await response.json();
-            return result;
-        } catch (error) {
-            // If API endpoint doesn't exist (e.g., local development without serverless function),
-            // fall back to showing manual submission
-            console.error('Failed to submit via API:', error);
-            throw error;
-        }
-    }
-
-    showSuccessCompletion(results) {
-        // Hide loading, show success completion
-        const loadingState = document.getElementById('loadingState');
-        if (loadingState) loadingState.style.display = 'none';
-        
-        const completionDiv = document.createElement('div');
-        completionDiv.className = 'completion-screen';
-        completionDiv.innerHTML = `
-            <div class="completion-content">
-                <h2>✅ Study Completed Successfully!</h2>
-                <p>Thank you for participating in our video generation comparison study.</p>
-                <p><strong>Your results have been automatically submitted as a GitHub issue.</strong></p>
-                <div class="completion-stats">
-                    <p>Total comparison sets completed: ${Object.keys(this.responses).length}</p>
-                    <p>Total videos evaluated: ${Object.values(this.responses).reduce((sum, set) => sum + Object.keys(set).length, 0)}</p>
-                    <p>Study duration: ${Math.round((Date.now() - this.studyData.startTime) / 1000 / 60)} minutes</p>
-                </div>
-                <p class="thank-you">Your contribution helps advance video generation research. Thank you!</p>
-                <div class="completion-buttons">
-                    <button onclick="userStudy.downloadResults()" class="download-btn">📋 Download Results (Backup)</button>
-                    <button onclick="window.location.href='index.html'" class="home-btn">🏠 Return to Home</button>
-                </div>
-            </div>
-        `;
-
-        document.querySelector('.study-main').appendChild(completionDiv);
-    }
-
-    showManualCompletion(results) {
-        // Hide loading, show manual completion
-        const loadingState = document.getElementById('loadingState');
-        if (loadingState) loadingState.style.display = 'none';
-        
-        const completionDiv = document.createElement('div');
-        completionDiv.className = 'completion-screen';
-        completionDiv.innerHTML = `
-            <div class="completion-content">
-                <h2>⚠️ Manual Submission Required</h2>
-                <p>Thank you for participating in our video generation comparison study.</p>
-                <p><strong>Automatic submission failed. Please help us by copying the results below and sending them to the researchers.</strong></p>
-                <div class="completion-stats">
-                    <p>Total comparison sets completed: ${Object.keys(this.responses).length}</p>
-                    <p>Total videos evaluated: ${Object.values(this.responses).reduce((sum, set) => sum + Object.keys(set).length, 0)}</p>
-                    <p>Study duration: ${Math.round((Date.now() - this.studyData.startTime) / 1000 / 60)} minutes</p>
-                </div>
-                <div class="results-section">
-                    <h3>📋 Results Data (Please copy and send to researchers):</h3>
-                    <textarea id="resultsTextarea" readonly class="results-textarea">${JSON.stringify(results, null, 2)}</textarea>
-                    <button onclick="userStudy.copyResults()" class="copy-btn">📋 Copy Results</button>
-                </div>
-                <div class="completion-buttons">
-                    <button onclick="userStudy.downloadResults()" class="download-btn">💾 Download Results</button>
-                    <button onclick="window.location.href='index.html'" class="home-btn">🏠 Return to Home</button>
-                </div>
-            </div>
-        `;
-
-        document.querySelector('.study-main').appendChild(completionDiv);
-    }
-
-    copyResults() {
-        const textarea = document.getElementById('resultsTextarea');
-        if (textarea) {
-            textarea.select();
-            document.execCommand('copy');
-            alert('Results copied to clipboard!');
-        }
-    }
-
-    generateResults() {
-        return {
-            timestamp: new Date().toISOString(),
-            participantId: this.studyData.participantId,
-            demographics: this.studyData.demographics,
-            responses: this.responses,
-            studyDuration: Date.now() - this.studyData.startTime
-        };
-    }
-
-    downloadResults() {
-        const results = this.generateResults();
-        const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `user_study_results_${this.studyData.participantId}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    getExistingVideos(videoFolder) {
-        const folderName = videoFolder.split('/').pop();
-        
-        // Only include files that actually exist in each folder
-        const actualFiles = {
-            'deepsink_vs_self_forcing': [
-                '30s_109_comparison.mp4',
-                '30s_24_comparison.mp4',
-                '30s_2_comparison.mp4',
-                '30s_32_comparison.mp4',
-                '30s_42_comparison.mp4',
-                '30s_43_comparison.mp4',
-                '30s_46_comparison.mp4',
-                '30s_47_comparison.mp4',
-                '30s_4_comparison.mp4',
-                '30s_69_comparison.mp4',
-                '30s_74_comparison.mp4',
-                '30s_7_comparison.mp4',
-                '30s_88_comparison.mp4',
-                '60s_28_comparison.mp4',
-                '60s_2_comparison.mp4',
-                '60s_43_comparison.mp4',
-                '60s_46_comparison.mp4',
-                '60s_47_comparison.mp4',
-                '60s_53_comparison.mp4',
-                '60s_70_comparison.mp4'
-            ],
-            'deepsink_vs_long_live': [
-                '30s_109_comparison.mp4',
-                '30s_24_comparison.mp4',
-                '30s_2_comparison.mp4',
-                '30s_32_comparison.mp4',
-                '30s_42_comparison.mp4',
-                '30s_43_comparison.mp4',
-                '30s_46_comparison.mp4',
-                '30s_47_comparison.mp4',
-                '30s_4_comparison.mp4',
-                '30s_69_comparison.mp4',
-                '30s_74_comparison.mp4',
-                '30s_7_comparison.mp4',
-                '30s_88_comparison.mp4',
-                '60s_28_comparison.mp4',
-                '60s_2_comparison.mp4',
-                '60s_43_comparison.mp4',
-                '60s_46_comparison.mp4',
-                '60s_47_comparison.mp4',
-                '60s_53_comparison.mp4',
-                '60s_70_comparison.mp4'
-            ],
-            'deepsink_vs_causvid': [
-                '30s_109_comparison.mp4',
-                '30s_24_comparison.mp4',
-                '30s_2_comparison.mp4',
-                '30s_32_comparison.mp4',
-                '30s_42_comparison.mp4',
-                '30s_43_comparison.mp4',
-                '30s_46_comparison.mp4',
-                '30s_47_comparison.mp4',
-                '30s_4_comparison.mp4',
-                '30s_69_comparison.mp4',
-                '30s_74_comparison.mp4',
-                '30s_7_comparison.mp4',
-                '30s_88_comparison.mp4',
-                '60s_28_comparison.mp4',
-                '60s_2_comparison.mp4',
-                '60s_43_comparison.mp4',
-                '60s_46_comparison.mp4',
-                '60s_47_comparison.mp4',
-                '60s_53_comparison.mp4',
-                '60s_70_comparison.mp4'
-            ],
-            'deepsink_vs_rolling_forcing': [
-                '30s_109_comparison.mp4',
-                '30s_24_comparison.mp4',
-                '30s_2_comparison.mp4',
-                '30s_32_comparison.mp4',
-                '30s_42_comparison.mp4',
-                '30s_43_comparison.mp4',
-                '30s_46_comparison.mp4',
-                '30s_47_comparison.mp4',
-                '30s_4_comparison.mp4',
-                '30s_69_comparison.mp4',
-                '30s_74_comparison.mp4',
-                '30s_7_comparison.mp4',
-                '30s_88_comparison.mp4',
-                '60s_28_comparison.mp4',
-                '60s_2_comparison.mp4',
-                '60s_43_comparison.mp4',
-                '60s_46_comparison.mp4',
-                '60s_47_comparison.mp4',
-                '60s_53_comparison.mp4',
-                '60s_70_comparison.mp4'
-            ]
-        };
-        
-        const files = actualFiles[folderName] || [];
-        return files.map(filename => ({
-            filename: filename,
-            basename: filename.replace('_comparison.mp4', '')
-        }));
-    }
-
-    showError(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.innerHTML = `
-            <h3>Error</h3>
-            <p>${message}</p>
-            <button onclick="window.location.reload()">Refresh Page</button>
-        `;
-
-        document.querySelector('.study-main').innerHTML = '';
-        document.querySelector('.study-main').appendChild(errorDiv);
     }
 }
 
-// Initialize study when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    new UserStudy();
-});
+function persist() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE));
+}
+
+// ---------------- ASSIGNMENT ----------------
+// Generate a per-participant model assignment satisfying:
+//  - Each section has 3 distinct models (out of 7).
+//  - Total counts: ours_14b appears 6 sections, each baseline appears 4 sections.
+//  - Order of the 3 models within each section is randomized.
+function generateAssignment() {
+    const N_SECTIONS = CONFIG.samples.length;  // 10
+    const counts = {...CONFIG.model_counts};   // {ours_14b: 6, wav2lip: 4, ...}
+
+    // Build a 30-element multiset
+    const pool = [];
+    for (const [model, n] of Object.entries(counts)) {
+        for (let i = 0; i < n; i++) pool.push(model);
+    }
+    if (pool.length !== N_SECTIONS * 3) {
+        throw new Error(`Model counts sum to ${pool.length}, expected ${N_SECTIONS * 3}`);
+    }
+
+    // Repeatedly shuffle + distribute until each section has 3 distinct models.
+    for (let attempt = 0; attempt < 1000; attempt++) {
+        shuffle(pool);
+        const sections = [];
+        let valid = true;
+        for (let s = 0; s < N_SECTIONS; s++) {
+            const trio = pool.slice(s * 3, s * 3 + 3);
+            if (new Set(trio).size !== 3) { valid = false; break; }
+            sections.push(trio);
+        }
+        if (valid) {
+            // Final shuffle of the order WITHIN each section (already random due to outer shuffle, but make explicit)
+            sections.forEach(t => shuffle(t));
+            return sections;
+        }
+    }
+    throw new Error('Failed to generate valid model assignment after 1000 attempts');
+}
+
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+}
+
+// ---------------- DEMOGRAPHICS ----------------
+
+function showDemographics() {
+    showScreen('demographics-screen');
+    const form = document.getElementById('demographics-form');
+    form.innerHTML = '';
+    CONFIG.demographic_questions.forEach((q, i) => {
+        const div = document.createElement('div');
+        div.className = 'demo-question';
+        const label = document.createElement('label');
+        label.htmlFor = `demo-${q.id}`;
+        label.textContent = q.question;
+        const select = document.createElement('select');
+        select.id = `demo-${q.id}`;
+        select.innerHTML = '<option value="">— Choose —</option>' +
+            q.options.map(o => `<option value="${escAttr(o)}">${escHtml(o)}</option>`).join('');
+        select.addEventListener('change', updateStartButton);
+        div.appendChild(label);
+        div.appendChild(select);
+        form.appendChild(div);
+    });
+    document.getElementById('start-study-btn').onclick = onStartStudy;
+    updateStartButton();
+}
+
+function updateStartButton() {
+    const allAnswered = CONFIG.demographic_questions.every(
+        q => document.getElementById(`demo-${q.id}`).value !== ''
+    );
+    document.getElementById('start-study-btn').disabled = !allAnswered;
+}
+
+function onStartStudy() {
+    CONFIG.demographic_questions.forEach(q => {
+        STATE.demographics[q.id] = document.getElementById(`demo-${q.id}`).value;
+    });
+    STATE.sectionIndex = 0;
+    persist();
+    renderSection(0);
+}
+
+// ---------------- SECTION ----------------
+
+function renderSection(idx) {
+    showScreen('section-screen');
+    const sample = CONFIG.samples[idx];
+    const slots  = STATE.responses[idx].slots;   // [{model, scores}, ...] length 3
+
+    document.getElementById('section-heading').textContent =
+        `Sample ${idx + 1} of ${CONFIG.samples.length}`;
+
+    setProgress((idx) / CONFIG.samples.length);
+    document.getElementById('progress-text').textContent =
+        `Section ${idx} of ${CONFIG.samples.length}`;
+
+    // --- video row ---
+    const videoRow = document.getElementById('video-row');
+    videoRow.innerHTML = '';
+    const videoEls = [];
+
+    // GT first
+    const gtCell = makeVideoCell({
+        label: 'Ground Truth',
+        url: `${CONFIG.video_dir}/${sample}/gt.mp4`,
+        muted: false,
+        isGt: true,
+    });
+    videoRow.appendChild(gtCell.cell);
+    videoEls.push(gtCell.video);
+
+    // 3 result slots (no labels — blind)
+    slots.forEach((slot, i) => {
+        // Mute results so we hear GT audio only (avoid 4 audio tracks at once)
+        const c = makeVideoCell({
+            label: `Video ${String.fromCharCode(65 + i)}`,   // A, B, C
+            url: `${CONFIG.video_dir}/${sample}/${slot.model}.mp4`,
+            muted: true,
+            isGt: false,
+        });
+        videoRow.appendChild(c.cell);
+        videoEls.push(c.video);
+    });
+
+    // Wire up sync between the 4 videos
+    syncVideoGroup(videoEls);
+
+    // --- ratings row ---
+    const ratingsRow = document.getElementById('ratings-row');
+    ratingsRow.innerHTML = '';
+
+    // GT column: empty placeholder
+    const gtPad = document.createElement('div');
+    gtPad.className = 'rating-cell gt-empty';
+    gtPad.textContent = '(no rating needed for Ground Truth)';
+    ratingsRow.appendChild(gtPad);
+
+    // Result columns: 4 rating questions per video
+    slots.forEach((slot, slotIdx) => {
+        const cell = document.createElement('div');
+        cell.className = 'rating-cell';
+        const heading = document.createElement('div');
+        heading.style.fontWeight = '700';
+        heading.style.fontSize = '14px';
+        heading.style.marginBottom = '10px';
+        heading.style.color = '#374151';
+        heading.textContent = `Video ${String.fromCharCode(65 + slotIdx)}`;
+        cell.appendChild(heading);
+
+        CONFIG.questions.forEach(q => {
+            const block = document.createElement('div');
+            block.className = 'q-block';
+            const lbl = document.createElement('div');
+            lbl.className = 'q-label';
+            lbl.textContent = q.label;
+            const txt = document.createElement('div');
+            txt.className = 'q-text';
+            txt.textContent = q.text;
+            block.appendChild(lbl);
+            block.appendChild(txt);
+
+            const scale = document.createElement('div');
+            scale.className = 'scale';
+            const groupName = `q_${idx}_${slotIdx}_${q.id}`;
+            for (let v = CONFIG.rating_scale.min; v <= CONFIG.rating_scale.max; v++) {
+                const id = `${groupName}_${v}`;
+                const lblWrap = document.createElement('label');
+                lblWrap.htmlFor = id;
+                const inp = document.createElement('input');
+                inp.type = 'radio';
+                inp.name = groupName;
+                inp.id = id;
+                inp.value = v;
+                if (slot.scores[q.id] === v) inp.checked = true;
+                inp.addEventListener('change', () => {
+                    slot.scores[q.id] = v;
+                    persist();
+                    refreshNavState(idx);
+                });
+                const bullet = document.createElement('span');
+                bullet.className = 'radio-bullet';
+                bullet.textContent = String(v);
+                lblWrap.appendChild(inp);
+                lblWrap.appendChild(bullet);
+                scale.appendChild(lblWrap);
+            }
+            block.appendChild(scale);
+            cell.appendChild(block);
+        });
+
+        ratingsRow.appendChild(cell);
+    });
+
+    // --- nav ---
+    document.getElementById('prev-btn').disabled = (idx === 0);
+    document.getElementById('prev-btn').onclick = () => {
+        STATE.sectionIndex = Math.max(0, idx - 1);
+        persist();
+        renderSection(STATE.sectionIndex);
+    };
+    document.getElementById('next-btn').onclick = () => {
+        if (idx + 1 >= CONFIG.samples.length) {
+            STATE.sectionIndex = CONFIG.samples.length;   // sentinel: done
+            persist();
+            showCompletion();
+        } else {
+            STATE.sectionIndex = idx + 1;
+            persist();
+            renderSection(STATE.sectionIndex);
+        }
+    };
+    refreshNavState(idx);
+}
+
+function refreshNavState(idx) {
+    const slots = STATE.responses[idx].slots;
+    const required = slots.length * CONFIG.questions.length;
+    let answered = 0;
+    slots.forEach(s => {
+        CONFIG.questions.forEach(q => { if (s.scores[q.id] !== undefined) answered++; });
+    });
+    document.getElementById('answered-status').textContent =
+        `${answered} / ${required} answered`;
+    document.getElementById('next-btn').disabled = (answered < required);
+    if (idx + 1 >= CONFIG.samples.length) {
+        document.getElementById('next-btn').textContent = 'Submit ▶';
+    } else {
+        document.getElementById('next-btn').textContent = 'Next ▶';
+    }
+}
+
+function makeVideoCell({label, url, muted, isGt}) {
+    const cell = document.createElement('div');
+    cell.className = 'video-cell' + (isGt ? ' is-gt' : '');
+
+    const lbl = document.createElement('div');
+    lbl.className = 'video-label';
+    lbl.textContent = label;
+    cell.appendChild(lbl);
+
+    const v = document.createElement('video');
+    v.src = url;
+    v.loop = true;
+    v.muted = muted;
+    v.preload = 'auto';
+    v.playsInline = true;
+    cell.appendChild(v);
+
+    const seekRow = document.createElement('div');
+    seekRow.className = 'seek-row';
+    const playBtn = document.createElement('button');
+    playBtn.className = 'play-btn';
+    playBtn.textContent = '▶';
+    const range = document.createElement('input');
+    range.type = 'range';
+    range.min = 0;
+    range.max = 1000;
+    range.value = 0;
+    range.step = 1;
+
+    playBtn.addEventListener('click', () => {
+        if (v.paused) v.play(); else v.pause();
+    });
+    v.addEventListener('play', () => playBtn.textContent = '❚❚');
+    v.addEventListener('pause', () => playBtn.textContent = '▶');
+
+    range.addEventListener('input', () => {
+        if (!v.duration) return;
+        const t = (range.value / 1000) * v.duration;
+        if (Math.abs(v.currentTime - t) > 0.04) v.currentTime = t;
+    });
+    v.addEventListener('timeupdate', () => {
+        if (!v.duration) return;
+        const value = Math.round((v.currentTime / v.duration) * 1000);
+        if (range.matches(':active')) return;   // user is dragging
+        range.value = value;
+    });
+
+    seekRow.appendChild(playBtn);
+    seekRow.appendChild(range);
+    cell.appendChild(seekRow);
+
+    return { cell, video: v };
+}
+
+// Sync a group of <video> elements: scrubbing/playing one moves all to the same
+// position. Uses currentTime + play/pause propagation; handles loops naturally
+// because each video has the loop attribute (very-short videos resync each
+// time anyway since we propagate seeks).
+function syncVideoGroup(videos) {
+    const setAll = (fn) => {
+        SYNC_SUPPRESS = true;
+        videos.forEach(fn);
+        // release after the next event loop tick
+        setTimeout(() => { SYNC_SUPPRESS = false; }, 30);
+    };
+
+    videos.forEach(v => {
+        v.addEventListener('seeking', () => {
+            if (SYNC_SUPPRESS) return;
+            const t = v.currentTime;
+            setAll(other => { if (other !== v) other.currentTime = t; });
+        });
+        v.addEventListener('play', () => {
+            if (SYNC_SUPPRESS) return;
+            setAll(other => { if (other !== v && other.paused) other.play().catch(() => {}); });
+        });
+        v.addEventListener('pause', () => {
+            if (SYNC_SUPPRESS) return;
+            setAll(other => { if (other !== v && !other.paused) other.pause(); });
+        });
+    });
+
+    // Drift correction: every 500ms, snap others to the first non-paused video's time.
+    // Cheap insurance for tiny drifts during loop.
+    setInterval(() => {
+        const driver = videos.find(v => !v.paused);
+        if (!driver) return;
+        videos.forEach(v => {
+            if (v === driver) return;
+            if (Math.abs(v.currentTime - driver.currentTime) > 0.15) {
+                SYNC_SUPPRESS = true;
+                v.currentTime = driver.currentTime;
+                setTimeout(() => { SYNC_SUPPRESS = false; }, 30);
+            }
+        });
+    }, 500);
+
+    // Auto-start when all are loaded
+    let loaded = 0;
+    videos.forEach(v => {
+        if (v.readyState >= 2) loaded++;
+        else v.addEventListener('loadeddata', () => {
+            loaded++;
+            if (loaded === videos.length) {
+                videos[0].play().catch(() => {});
+            }
+        });
+    });
+    if (loaded === videos.length) videos[0].play().catch(() => {});
+}
+
+// ---------------- COMPLETION + SUBMISSION ----------------
+
+async function showCompletion() {
+    showScreen('completion-screen');
+    setProgress(1);
+    document.getElementById('progress-text').textContent =
+        `Done — ${CONFIG.samples.length} of ${CONFIG.samples.length}`;
+
+    const payload = buildPayload();
+    document.getElementById('response-dump').textContent = JSON.stringify(payload, null, 2);
+    localStorage.setItem(STORAGE_RESULTS, JSON.stringify(payload));
+
+    const status = document.getElementById('submission-status');
+    status.textContent = 'Submitting your responses…';
+
+    try {
+        const res = await fetch('/api/submit-results', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(`HTTP ${res.status}: ${txt}`);
+        }
+        const data = await res.json();
+        status.className = 'ok';
+        status.textContent = '✓ Submitted successfully. Thank you!';
+        if (data.issue_url) {
+            const a = document.createElement('a');
+            a.href = data.issue_url;
+            a.target = '_blank';
+            a.textContent = '(view receipt)';
+            a.style.marginLeft = '8px';
+            status.appendChild(a);
+        }
+    } catch (e) {
+        console.error('Submission error:', e);
+        status.className = 'err';
+        status.textContent = '⚠ Auto-submission failed. Your responses are saved locally — please send the JSON below to the researcher.';
+    }
+}
+
+function buildPayload() {
+    return {
+        timestamp: new Date().toISOString(),
+        participantId: STATE.participantId,
+        demographics: STATE.demographics,
+        studyDuration: Date.now() - STATE.startTime,
+        config: {
+            samples: CONFIG.samples,
+            models: CONFIG.models,
+            model_counts: CONFIG.model_counts,
+        },
+        responses: STATE.responses.map(r => ({
+            sample: r.sampleStem,
+            videos: r.slots.map(s => ({ model: s.model, scores: s.scores })),
+        })),
+    };
+}
+
+// ---------------- HELPERS ----------------
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+}
+function setProgress(frac) {
+    document.getElementById('progress-bar').style.setProperty('--progress', `${Math.round(frac * 100)}%`);
+}
+function escHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
+function escAttr(s) { return escHtml(s); }
+
+// ---------------- BOOT ----------------
+
+document.addEventListener('DOMContentLoaded', init);
+
+// Expose a debug handle for testing in console
+window.__study = { get state() { return STATE; }, get config() { return CONFIG; }, reset() { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(STORAGE_RESULTS); location.reload(); } };
+
+})();

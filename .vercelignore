@@ -1,0 +1,30 @@
+# Things not needed at runtime — exclude from Vercel deploy to keep size small
+# (~1.5 GB of legacy assets stay in git but won't ship to Vercel)
+user_study_comparisons/
+raw_videos/
+create_comparison_videos.py
+prepare_raw_videos.py
+data/aggregate_results.py
+data/aggregate_results_new.py
+data/aggregate_results_from_github.py
+data/collect_github_results.py
+data/collect_github_results_no_viz.py
+data/collect_simple.py
+data/collect_simple_fixed.py
+data/collect_with_visualization.py
+data/create_mappings.py
+data/debug_analysis.py
+data/example_usage.py
+data/manual_verify.py
+data/temp_hunyuan.txt
+data/hallo3_avspeech_mapping.txt
+data/hunyuan_avspeech_mapping.txt
+data/omniavatar_avspeech_mapping.txt
+data/requirements.txt
+data/README_*.md
+debug.html
+js/study_new.js
+prompt_text.json
+HOW_TO_ACCESS_RESULTS.md
+README.md
+.git/

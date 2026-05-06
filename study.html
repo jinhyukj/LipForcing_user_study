@@ -3,165 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Generation Comparison Study</title>
+    <title>Audio-Driven Lip Sync User Study</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="container study-container">
-        <header class="study-header">
-            <div class="progress-container">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressBar"></div>
-                </div>
-                <div class="progress-text">
-                    Problem <span id="currentProgress">1</span> of <span id="totalProgress">16</span>
-                </div>
-            </div>
-        </header>
-
-        <main class="study-main">
-            <!-- Loading State -->
-            <div id="loadingState" class="loading-state">
-                <div class="loading-spinner"></div>
-                <p id="loadingText">Loading video comparison...</p>
-            </div>
-
-            <!-- Study Interface -->
-            <div id="studyInterface" class="study-interface" style="display: none;">
-                <div class="video-section">
-                    <div class="video-info">
-                        <div class="prompt-section">
-                            <h4>Text Prompt:</h4>
-                            <p id="currentPromptText" class="prompt-text">Loading prompt...</p>
-                        </div>
-                    </div>
-
-                    <div class="video-labels">
-                        <span class="video-label">Model A</span>
-                        <span class="video-label">Model B</span>
-                    </div>
-                    <div class="video-container">
-                        <video id="comparisonVideo" controls muted preload="auto" width="100%">
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>
-
-                    <div class="video-controls-info">
-                        <p><strong>Please watch the video completely before making your choice below.</strong></p>
-                        <p>The video shows: Model A | Model B (side by side)</p>
-                    </div>
-                </div>
-
-                <div class="questions-section">
-                    <form id="choiceForm">
-                        <div class="questions-container">
-                            <p class="questions-instruction">
-                                <strong>Please answer all questions below after watching the video completely.</strong>
-                                Watch the video multiple times if needed to evaluate different aspects.
-
-                            </p>
-
-                            <div class="question">
-                                <h4>1. <strong>[Color Consistency]</strong> Which video maintains more consistent color and exposure throughout, without sudden shifts in brightness, saturation, or color tone?</h4>
-                                <div class="question-options">
-                                    <label>
-                                        <input type="radio" name="color_consistency" value="A">
-                                        Model A
-                                    </label>
-                                    <label>
-                                        <input type="radio" name="color_consistency" value="B">
-                                        Model B
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="question">
-                                <h4>2. <strong>[Dynamic Motion]</strong> Which video exhibits more dynamic and varied motion, including both subject movement and camera movement?</h4>
-                                <div class="question-options">
-                                    <label>
-                                        <input type="radio" name="dynamic_motion" value="A">
-                                        Model A
-                                    </label>
-                                    <label>
-                                        <input type="radio" name="dynamic_motion" value="B">
-                                        Model B
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="question">
-                                <h4>3. <strong>[Subject Consistency]</strong> Which video maintains better visual consistency of the main subject throughout its duration? (Consider comparing the beginning and end of each video)</h4>
-                                <div class="question-options">
-                                    <label>
-                                        <input type="radio" name="subject_consistency" value="A">
-                                        Model A
-                                    </label>
-                                    <label>
-                                        <input type="radio" name="subject_consistency" value="B">
-                                        Model B
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="question">
-                                <h4>4. <strong>[Overall Quality]</strong> Overall, which video appears more realistic, natural, and of higher overall quality?</h4>
-                                <div class="question-options">
-                                    <label>
-                                        <input type="radio" name="overall_quality" value="A">
-                                        Model A
-                                    </label>
-                                    <label>
-                                        <input type="radio" name="overall_quality" value="B">
-                                        Model B
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-actions">
-                            <button type="button" id="prevVideo" class="action-button secondary">
-                                ← Previous Video
-                            </button>
-                            <button type="submit" id="submitChoice" class="action-button primary" disabled>
-                                Next Video →
-                            </button>
-                            <button type="button" id="nextVideo" class="action-button secondary">
-                                Skip →
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Completion State -->
-            <div id="completionState" class="completion-state" style="display: none;">
-                <h2>⚠️ Manual Submission Required</h2>
-                <p>Auto-submission failed. Please copy the following code and send it to the researchers who asked you to survey:</p>
-                <div class="results-code-container">
-                    <textarea id="resultsCodeFinal" readonly class="results-code"></textarea>
-                    <button id="copyResultsFinalBtn" class="copy-button">📋 Copy Code</button>
-                </div>
-                <p><small>Thank you for participating in our user study!</small></p>
-            </div>
-        </main>
-    </div>
-
-    <!-- Results Modal -->
-    <div id="resultsModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Your Study Results</h3>
-                <button class="modal-close" id="closeModal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Please copy the following code and send it to the researchers who asked you to survey:</p>
-                <div class="results-code-container">
-                    <textarea id="resultsCode" readonly class="results-code"></textarea>
-                    <button id="copyResultsBtn" class="copy-button">📋 Copy Code</button>
-                </div>
-            </div>
+    <header>
+        <h1 id="study-title">Audio-Driven Lip Sync User Study</h1>
+        <div id="progress-bar-wrap">
+            <div id="progress-bar"></div>
+            <span id="progress-text">Section 0 of 10</span>
         </div>
-    </div>
+    </header>
+
+    <main>
+        <!-- Demographics screen (shown first) -->
+        <section id="demographics-screen" class="screen">
+            <h2>Before we start</h2>
+            <p>A couple of quick questions, then we'll begin.</p>
+            <div id="demographics-form"></div>
+            <button id="start-study-btn" class="primary-btn" disabled>Start study</button>
+        </section>
+
+        <!-- Section screen (rendered per sample) -->
+        <section id="section-screen" class="screen hidden">
+            <div class="section-header">
+                <h2 id="section-heading">Sample 1 of 10</h2>
+                <p class="hint">
+                    Watch the four videos. They loop, and the scrubber on any one moves all of them together.
+                    Then rate the three unlabeled videos. The leftmost (Ground Truth) is the real recording —
+                    no rating needed for it.
+                </p>
+            </div>
+            <div id="video-row"></div>
+            <div id="ratings-row"></div>
+            <div class="nav-row">
+                <button id="prev-btn" class="secondary-btn" disabled>◀ Previous</button>
+                <span id="answered-status" class="answered-status"></span>
+                <button id="next-btn" class="primary-btn" disabled>Next ▶</button>
+            </div>
+        </section>
+
+        <!-- Completion screen -->
+        <section id="completion-screen" class="screen hidden">
+            <h2>Thank you!</h2>
+            <p>Your responses have been recorded. The study is complete.</p>
+            <div id="submission-status"></div>
+            <details>
+                <summary>View your raw responses</summary>
+                <pre id="response-dump"></pre>
+            </details>
+        </section>
+    </main>
 
     <script src="js/utils.js"></script>
     <script src="js/study.js"></script>

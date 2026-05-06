@@ -3,91 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Generation Model Comparison Study</title>
+    <title>Audio-Driven Lip Sync User Study</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .landing { max-width: 760px; margin: 40px auto; padding: 0 20px; }
+        .landing h1 { font-size: 28px; margin-bottom: 4px; }
+        .landing .subtitle { color: #6b7280; margin-bottom: 28px; }
+        .landing section { margin-bottom: 22px; }
+        .landing h2 { font-size: 18px; margin-bottom: 8px; }
+        .landing ol, .landing ul { margin-left: 20px; }
+        .landing li { margin-bottom: 4px; }
+        .start-wrap { text-align: center; margin: 36px 0; }
+        .start-btn {
+            background: #2563eb; color: white; padding: 14px 32px;
+            font-size: 16px; font-weight: 600; border: none;
+            border-radius: 8px; cursor: pointer;
+        }
+        .start-btn:hover { background: #1d4ed8; }
+        .meta { color: #6b7280; font-size: 13px; margin-top: 8px; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <h1>Long Video Generation Model Comparison Study</h1>
-            <div class="subtitle">Research on Long Video Generation Quality</div>
-        </header>
+    <div class="landing">
+        <h1>Audio-Driven Lip Sync User Study</h1>
+        <div class="subtitle">Comparing lip-sync video models</div>
 
-        <main class="main-content">
-            <div class="instructions-card">
-                <h2>Instructions</h2>
+        <section>
+            <h2>What you'll do</h2>
+            <p>You'll see 10 sets of 4 short videos. Each set shows the same person:</p>
+            <ul>
+                <li>The leftmost video is the <strong>Ground Truth</strong> (real recording).</li>
+                <li>The other three are different lip-sync model outputs, shown without labels.</li>
+            </ul>
+            <p>For each set, watch the four videos (they loop, and the scrubber on any one moves all four together), then rate the three unlabeled videos on four dimensions.</p>
+        </section>
 
-                <div class="instruction-section">
-                    <h3>🎯 Purpose</h3>
-                    <p>This study evaluates the quality of different video generation models on long videos. You will compare pairs of generated videos and choose which one has better quality.</p>
-                </div>
+        <section>
+            <h2>Questions you'll be asked (per video)</h2>
+            <ol>
+                <li><strong>Sync</strong> — How well is the video synced with the audio?</li>
+                <li><strong>Video Quality</strong> — How is the visual quality of the video?</li>
+                <li><strong>ID Preservation</strong> — How well does the video preserve the identity of the person across time?</li>
+                <li><strong>Naturalness</strong> — How natural does the video look?</li>
+            </ol>
+            <p>Each on a 1-5 scale (1 = poor, 5 = excellent). The Ground Truth video does <em>not</em> need to be rated.</p>
+        </section>
 
-                <div class="instruction-section">
-                    <h3>📋 What You'll Do</h3>
-                    <ul>
-                        <li><strong>16 Video Comparisons:</strong> You'll evaluate 16 video comparison pairs</li>
-                        <li><strong>Video Selection:</strong> Each comparison includes video pairs that are either 30 or 60 seconds long.</li>
-                        <li><strong>4 Questions per Video:</strong> Answer 4 specific questions about color consistency, dynamic motion, subject consistency, and overall quality</li>
-                        <li><strong>A/B Choice:</strong> Simply choose "Model A" or "Model B" for each question</li>
-                        <li><strong>Time Required:</strong> Approximately 10-15 minutes</li>
-                    </ul>
-                </div>
+        <section>
+            <h2>Practical notes</h2>
+            <ul>
+                <li>Headphones recommended.</li>
+                <li>Allow ~10–15 minutes.</li>
+                <li>Your progress is saved locally as you go — if your browser closes mid-study, you can resume from the same place.</li>
+                <li>At the end, your responses are submitted automatically. No personal information is collected beyond the demographic dropdowns.</li>
+            </ul>
+        </section>
 
-                                <div class="instruction-section">
-                    <h3>❓ Evaluation Questions</h3>
-                    <p>For each video comparison, you will answer these 4 questions:</p>
-                    <ol>
-                        <li><strong>Color Consistency:</strong> Which video maintains more consistent color and exposure throughout, without sudden shifts in brightness, saturation, or color tone?</li>
-                        <li><strong>Dynamic Motion:</strong> Which video exhibits more dynamic and varied motion, including both subject movement and camera movement?</li>
-                        <li><strong>Subject Consistency:</strong> Which video maintains better visual consistency of the main subject throughout its duration? (Consider comparing the beginning and end of each video)</li>
-                        <li><strong>Overall Quality:</strong> Which video appears more realistic, natural, and of higher overall quality?</li>
-                    </ol>
-                </div>
-
-                <div class="instruction-section">
-                    <h3>🔒 Research Information</h3>
-                    <p>This survey is conducted for research purposes. Your responses will be used solely for academic research on video generation quality evaluation.</p>
-                </div>
-
-                <div class="instruction-section important-note">
-                    <h3>⚠️ Important Notes</h3>
-                    <ul>
-                        <li>Please watch each video completely before making your choice</li>
-                        <li>Trust your first impression - there are no "correct" answers</li>
-                        <li>Focus on overall video quality including motion, clarity, and coherence</li>
-                        <li>You can navigate back and forth between videos within each comparison set</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="start-section">
-                <button id="startStudyBtn" class="start-button">
-                    Start Video Comparison Study
-                    <span class="button-subtitle">~10-15 minutes</span>
-                </button>
-            </div>
-        </main>
-
-        <footer class="footer">
-            <p>Video Generation Model Research</p>
-        </footer>
+        <div class="start-wrap">
+            <button class="start-btn" onclick="window.location.href='study.html'">Start the study</button>
+            <div class="meta">By starting, you agree your anonymized responses will be used for academic research.</div>
+        </div>
     </div>
-
-    <script src="js/utils.js"></script>
-    <script>
-        document.getElementById('startStudyBtn').addEventListener('click', function() {
-            // Initialize study session
-            const studyData = {
-                startTime: Date.now(),
-                participantId: generateUserId(),
-                demographics: {},
-                responses: {}
-            };
-            localStorage.setItem('userStudyData', JSON.stringify(studyData));
-
-            // Redirect to study page
-            window.location.href = 'study.html';
-        });
-    </script>
 </body>
 </html>

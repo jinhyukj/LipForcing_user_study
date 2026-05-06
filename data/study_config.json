@@ -1,53 +1,58 @@
 {
-  "study_title": "Long Video Generation Model Comparison Study",
-  "instructions": "Please watch each comparison video and select which model (A or B) produces better quality long video generation results.",
-  "comparison_sets": [
-    {
-      "name": "deepsink_vs_self_forcing",
-      "display_name": "Comparison Set 1",
-      "video_folder": "user_study_comparisons/deepsink_vs_self_forcing",
-      "order_file": "user_study_comparisons/deepsink_vs_self_forcing/order_sheet.txt"
-    },
-    {
-      "name": "deepsink_vs_long_live",
-      "display_name": "Comparison Set 2",
-      "video_folder": "user_study_comparisons/deepsink_vs_long_live",
-      "order_file": "user_study_comparisons/deepsink_vs_long_live/order_sheet.txt"
-    },
-    {
-      "name": "deepsink_vs_causvid",
-      "display_name": "Comparison Set 3",
-      "video_folder": "user_study_comparisons/deepsink_vs_causvid",
-      "order_file": "user_study_comparisons/deepsink_vs_causvid/order_sheet.txt"
-    },
-    {
-      "name": "deepsink_vs_rolling_forcing",
-      "display_name": "Comparison Set 4",
-      "video_folder": "user_study_comparisons/deepsink_vs_rolling_forcing",
-      "order_file": "user_study_comparisons/deepsink_vs_rolling_forcing/order_sheet.txt"
-    }
+  "study_title": "Audio-Driven Lip Sync User Study",
+  "instructions": "You will see 10 sets of videos. Each set contains 4 videos showing the same person — the leftmost is the Ground Truth (real recording), the other three are different lip-sync model outputs (shown without labels). Watch the videos (they loop, and scrubbing one scrubs all four), then rate the three unlabeled videos on four dimensions. Headphones recommended.",
+  "video_dir": "study_videos",
+  "samples": [
+    "RD_Radio18_000",
+    "WDA_BarackObama_001",
+    "WDA_ChrisCoons1_000",
+    "WDA_HillaryClinton_000",
+    "WDA_JamesClyburn1_000",
+    "WDA_TammyDuckworth_000",
+    "WDA_TedLieu_000",
+    "WRA_AdamKinzinger2_001",
+    "WRA_EricCantor_000",
+    "WRA_MikeEnzi_000"
   ],
-  "rating_scale": {
-    "type": "binary_choice",
-    "options": [
-      {"value": "A", "label": "Model A is better"},
-      {"value": "B", "label": "Model B is better"}
-    ]
+  "models": [
+    "ours_14b",
+    "wav2lip",
+    "diff2lip",
+    "musetalk",
+    "latentsync",
+    "videoretalking",
+    "xdub"
+  ],
+  "model_counts": {
+    "ours_14b": 6,
+    "wav2lip": 4,
+    "diff2lip": 4,
+    "musetalk": 4,
+    "latentsync": 4,
+    "videoretalking": 4,
+    "xdub": 4
   },
+  "rating_scale": {
+    "min": 1,
+    "max": 5,
+    "labels": ["1 — Poor", "2", "3", "4", "5 — Excellent"]
+  },
+  "questions": [
+    {"id": "sync",     "label": "Sync",            "text": "How well is the video synced with the audio?"},
+    {"id": "quality",  "label": "Video Quality",   "text": "How is the visual quality of the video?"},
+    {"id": "id_pres",  "label": "ID Preservation", "text": "How well does the video preserve the identity of the person across time?"},
+    {"id": "natural",  "label": "Naturalness",     "text": "How natural does the video look?"}
+  ],
   "demographic_questions": [
     {
       "id": "age",
       "question": "What is your age group?",
-      "type": "select",
-      "options": ["18-25", "26-35", "36-45", "46-55", "56+"],
-      "required": true
+      "options": ["Under 18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+"]
     },
     {
       "id": "experience",
-      "question": "How familiar are you with video generation technology?",
-      "type": "select", 
-      "options": ["Not familiar", "Somewhat familiar", "Very familiar", "Expert"],
-      "required": true
+      "question": "How familiar are you with audio-driven facial animation / lip-sync technology?",
+      "options": ["Not familiar at all", "Slightly familiar", "Moderately familiar", "Very familiar", "Expert"]
     }
   ]
 }
