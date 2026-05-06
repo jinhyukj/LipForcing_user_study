@@ -82,17 +82,12 @@ function showLanding() {
     const startBtn = document.getElementById('start-btn');
     if (STATE.phone) phoneInput.value = STATE.phone;
 
-    const validate = () => {
-        const digits = phoneInput.value.replace(/\D/g, '');
-        startBtn.disabled = digits.length < 8;
-    };
-    validate();
-    phoneInput.oninput = validate;
+    // Phone number is optional — Start button is always enabled.
+    startBtn.disabled = false;
 
     startBtn.onclick = () => {
         const phone = phoneInput.value.trim();
-        if (phone.replace(/\D/g, '').length < 8) return;
-        STATE.phone = phone;
+        STATE.phone = phone || null;
         STATE.sectionIndex = 0;
         persist();
         renderSection(0);

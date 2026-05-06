@@ -243,15 +243,15 @@ button {
     margin-bottom: 22px;
 }
 #landing-explanation p {
-    margin: 0 0 10px 0;
-    line-height: 1.6;
+    margin: 0 0 14px 0;
+    line-height: 1.65;
 }
 #landing-explanation .explain-en {
-    font-size: 14px;
+    font-size: 17px;
     color: #1f2937;
 }
 #landing-explanation .explain-ko {
-    font-size: 13px;
+    font-size: 16px;
     color: #4b5563;
 }
 .phone-row {
@@ -272,6 +272,16 @@ button {
     color: #6b7280;
     margin-left: 6px;
     font-weight: 400;
+}
+.phone-row label .optional-tag {
+    font-size: 12px;
+    color: #16a34a;
+    margin-left: 8px;
+    font-weight: 500;
+    background: #dcfce7;
+    padding: 1px 8px;
+    border-radius: 10px;
+    vertical-align: middle;
 }
 .phone-row input[type=tel] {
     width: 100%;
