@@ -305,6 +305,30 @@ button {
     margin-top: 2px;
 }
 
+/* Absolute-evaluation callout (shown on every section) */
+.absolute-eval-callout {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-left: 4px solid #f59e0b;
+    color: #78350f;
+    padding: 10px 14px;
+    border-radius: 5px;
+    margin: 10px 0;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 920px;
+}
+.absolute-eval-callout strong { color: #78350f; }
+.absolute-eval-callout .ko-callout {
+    display: block;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed rgba(120, 53, 15, 0.25);
+    color: #92400e;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
 /* Bilingual labels — small Korean line under English line */
 .section-explanation { margin-top: 6px; }
 .section-explanation .explain-en {
