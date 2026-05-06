@@ -42,17 +42,5 @@
     {"id": "quality",  "label": "Video Quality",   "text": "How is the visual quality of the video?"},
     {"id": "id_pres",  "label": "ID Preservation", "text": "How well does the video preserve the identity of the person across time?"},
     {"id": "natural",  "label": "Naturalness",     "text": "How natural does the video look?"}
-  ],
-  "demographic_questions": [
-    {
-      "id": "age",
-      "question": "What is your age group?",
-      "options": ["Under 18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+"]
-    },
-    {
-      "id": "experience",
-      "question": "How familiar are you with audio-driven facial animation / lip-sync technology?",
-      "options": ["Not familiar at all", "Slightly familiar", "Moderately familiar", "Very familiar", "Expert"]
-    }
   ]
 }

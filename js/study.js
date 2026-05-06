@@ -11,9 +11,8 @@ const STORAGE_RESULTS  = 'lipForcingStudyResults';
 let CONFIG = null;
 let STATE = {
     participantId: null,
-    demographics: {},
     startTime: null,
-    sectionIndex: 0,         // 0..N-1; -1 = demographics not yet done
+    sectionIndex: 0,
     assignment: [],          // length = N samples; each entry = [model_a, model_b, model_c]  (display order)
     responses: [],           // length = N; each entry: { sampleStem, slots: [{model, scores: {sync,quality,id_pres,natural}}] for 3 result videos }
 };
@@ -44,7 +43,7 @@ async function init() {
     }
 
     if (!STATE.participantId) {
-        // Fresh start: assign and render demographics
+        // Fresh start: assign and jump straight into the study.
         STATE.participantId = 'p_' + Math.random().toString(36).slice(2, 10);
         STATE.startTime = Date.now();
         STATE.assignment = generateAssignment();
@@ -52,18 +51,13 @@ async function init() {
             sampleStem: CONFIG.samples[i],
             slots: slot_models.map(m => ({ model: m, scores: {} })),
         }));
-        STATE.sectionIndex = -1;
+        STATE.sectionIndex = 0;
         persist();
-        showDemographics();
+        renderSection(0);
+    } else if (STATE.sectionIndex >= CONFIG.samples.length) {
+        showCompletion();
     } else {
-        // Resume mid-study or after demographics
-        if (STATE.sectionIndex < 0) {
-            showDemographics();
-        } else if (STATE.sectionIndex >= CONFIG.samples.length) {
-            showCompletion();
-        } else {
-            renderSection(STATE.sectionIndex);
-        }
+        renderSection(Math.max(0, STATE.sectionIndex));
     }
 }
 
@@ -113,47 +107,6 @@ function shuffle(arr) {
         const j = Math.floor(Math.random() * (i + 1));
         [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-}
-
-// ---------------- DEMOGRAPHICS ----------------
-
-function showDemographics() {
-    showScreen('demographics-screen');
-    const form = document.getElementById('demographics-form');
-    form.innerHTML = '';
-    CONFIG.demographic_questions.forEach((q, i) => {
-        const div = document.createElement('div');
-        div.className = 'demo-question';
-        const label = document.createElement('label');
-        label.htmlFor = `demo-${q.id}`;
-        label.textContent = q.question;
-        const select = document.createElement('select');
-        select.id = `demo-${q.id}`;
-        select.innerHTML = '<option value="">— Choose —</option>' +
-            q.options.map(o => `<option value="${escAttr(o)}">${escHtml(o)}</option>`).join('');
-        select.addEventListener('change', updateStartButton);
-        div.appendChild(label);
-        div.appendChild(select);
-        form.appendChild(div);
-    });
-    document.getElementById('start-study-btn').onclick = onStartStudy;
-    updateStartButton();
-}
-
-function updateStartButton() {
-    const allAnswered = CONFIG.demographic_questions.every(
-        q => document.getElementById(`demo-${q.id}`).value !== ''
-    );
-    document.getElementById('start-study-btn').disabled = !allAnswered;
-}
-
-function onStartStudy() {
-    CONFIG.demographic_questions.forEach(q => {
-        STATE.demographics[q.id] = document.getElementById(`demo-${q.id}`).value;
-    });
-    STATE.sectionIndex = 0;
-    persist();
-    renderSection(0);
 }
 
 // ---------------- SECTION ----------------
@@ -322,6 +275,13 @@ function makeVideoCell({label, url, muted, isGt}) {
     v.playsInline = true;
     cell.appendChild(v);
 
+    // Force first frame to render so the element doesn't show blank when paused.
+    // preload="auto" loads bytes but doesn't always paint the first frame; a
+    // tiny seek nudges the renderer.
+    v.addEventListener('loadedmetadata', () => {
+        try { v.currentTime = 0.01; } catch {}
+    }, { once: true });
+
     const seekRow = document.createElement('div');
     seekRow.className = 'seek-row';
     const playBtn = document.createElement('button');
@@ -402,18 +362,11 @@ function syncVideoGroup(videos) {
         });
     }, 500);
 
-    // Auto-start when all are loaded
-    let loaded = 0;
-    videos.forEach(v => {
-        if (v.readyState >= 2) loaded++;
-        else v.addEventListener('loadeddata', () => {
-            loaded++;
-            if (loaded === videos.length) {
-                videos[0].play().catch(() => {});
-            }
-        });
-    });
-    if (loaded === videos.length) videos[0].play().catch(() => {});
+    // No auto-play — browsers silently block autoplay of unmuted media without
+    // a recent user gesture, which makes the GT cell look blank. Instead, the
+    // first frame of each video is forced to render via the loadedmetadata
+    // seek (above), and the user clicks Play on any of the four videos to
+    // start all four together (play propagates via the listeners above).
 }
 
 // ---------------- COMPLETION + SUBMISSION ----------------
@@ -463,7 +416,6 @@ function buildPayload() {
     return {
         timestamp: new Date().toISOString(),
         participantId: STATE.participantId,
-        demographics: STATE.demographics,
         studyDuration: Date.now() - STATE.startTime,
         config: {
             samples: CONFIG.samples,

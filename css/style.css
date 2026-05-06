@@ -79,19 +79,6 @@ button {
 .secondary-btn:hover:not(:disabled) { background: #d1d5db; }
 .secondary-btn:disabled { color: #9ca3af; cursor: not-allowed; }
 
-/* Demographics */
-#demographics-form { margin: 18px 0; }
-.demo-question { margin-bottom: 14px; }
-.demo-question label { display: block; font-weight: 600; margin-bottom: 6px; }
-.demo-question select {
-    padding: 8px 10px;
-    font-size: 14px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    background: white;
-    min-width: 220px;
-}
-
 /* Section */
 .section-header { margin-bottom: 14px; }
 .section-header .hint {

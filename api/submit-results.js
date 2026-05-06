@@ -55,9 +55,6 @@ export default async function handler(req, res) {
 **Duration:** ${Math.round(results.studyDuration / 1000 / 60)} minutes
 **Sections:** ${(results.responses || []).length}
 
-### Demographics
-${Object.entries(results.demographics || {}).map(([k, v]) => `- **${k}:** ${v}`).join('\n')}
-
 ### Per-model average scores (this participant)
 
 | Model | Sync | Video Quality | ID Preservation | Naturalness |
