@@ -6,16 +6,16 @@
   "section_explanation_ko": "아래의 각 세트에는 같은 사람의 비디오 4개가 나옵니다. 가장 왼쪽 비디오는 실제 녹화 영상(Ground Truth)이며, 나머지 세 개는 AI가 입술 움직임을 오디오에 맞게 다시 생성한 결과물입니다. 세 개의 결과 비디오는 서로 다른 모델에서 나온 것일 수 있으며, 평가가 편향되지 않도록 모델 이름은 표시되지 않습니다. 네 비디오 모두 시청하면서(반복 재생되며, 한 비디오의 진행바를 움직이면 네 개 모두 같이 움직입니다) 다음을 살펴봐 주세요: (a) 입술 움직임이 오디오와 얼마나 정확히 맞는지, (b) 전반적인 화질(선명도, 아티팩트, 흐림), (c) 영상 전체에서 인물의 정체성이 동일하게 유지되는지, (d) 움직임과 외형이 전체적으로 얼마나 자연스러운지. 그런 다음 라벨이 없는 세 비디오를 아래 네 가지 기준에 따라 1점(나쁨)부터 5점(우수)까지 평가해 주세요.",
   "video_dir": "study_videos",
   "samples": [
-    "RD_Radio18_000",
-    "WDA_BarackObama_001",
-    "WDA_ChrisCoons1_000",
-    "WDA_HillaryClinton_000",
+    "-59cJcC2HJY_NA_111.669_117.434",
     "WDA_JamesClyburn1_000",
-    "WDA_TammyDuckworth_000",
-    "WDA_TedLieu_000",
-    "WRA_AdamKinzinger2_001",
-    "WRA_EricCantor_000",
-    "WRA_MikeEnzi_000"
+    "-9cW4Gcn5WY_NA_121.512_146.796",
+    "WDA_KatherineClark_000",
+    "-AdXIC44b7Q_NA_171.504_176.876",
+    "WDA_LucilleRoybal-Allard_000",
+    "-CfPcZWAPH4_NA_92.933_100.000",
+    "WRA_KellyAyotte_000",
+    "-FOCpMAww28_NA_286.391_295.275",
+    "-f6S3bCGX9Y_NA_0.740_23.500"
   ],
   "models": [
     "ours_14b",
@@ -38,7 +38,13 @@
   "rating_scale": {
     "min": 1,
     "max": 5,
-    "labels": ["1 — Poor", "2", "3", "4", "5 — Excellent"]
+    "labels": [
+      "1 — Poor",
+      "2",
+      "3",
+      "4",
+      "5 — Excellent"
+    ]
   },
   "questions": [
     {
