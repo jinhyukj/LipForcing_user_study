@@ -173,40 +173,83 @@ button {
 .scale {
     display: flex;
     gap: 4px;
-    align-items: center;
+    align-items: stretch;
 }
 .scale label {
     flex: 1;
-    text-align: center;
     cursor: pointer;
-    padding: 6px 0;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    background: #f9fafb;
-    font-size: 13px;
     user-select: none;
+    display: flex;
+    /* The label is just a flex wrapper; the .radio-bullet inside is the
+       actual visible "box" so the entire clickable area changes color when
+       checked, not just an inner sliver. */
 }
-.scale label:hover { background: #eff6ff; border-color: #93c5fd; }
 .scale input[type=radio] {
     position: absolute;
     opacity: 0;
     width: 0;
     height: 0;
+    pointer-events: none;
 }
-.scale input[type=radio]:checked + .radio-bullet { background: #2563eb; color: white; border-color: #2563eb; }
 .radio-bullet {
     flex: 1;
     text-align: center;
-    cursor: pointer;
-    padding: 6px 0;
+    padding: 8px 0;
     border: 1px solid #d1d5db;
     border-radius: 4px;
     background: #f9fafb;
     font-size: 13px;
-    user-select: none;
-    transition: background 0.1s, border-color 0.1s;
+    transition: background 0.1s, border-color 0.1s, color 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-.radio-bullet:hover { background: #eff6ff; border-color: #93c5fd; }
+.scale label:hover .radio-bullet {
+    background: #eff6ff;
+    border-color: #93c5fd;
+}
+.scale input[type=radio]:checked + .radio-bullet {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: white;
+    font-weight: 600;
+}
+.scale input[type=radio]:focus-visible + .radio-bullet {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+/* Bilingual labels — small Korean line under English line */
+.section-explanation { margin-top: 6px; }
+.section-explanation .explain-en {
+    font-size: 13px;
+    color: #4b5563;
+    margin: 0 0 6px 0;
+    max-width: 920px;
+    line-height: 1.55;
+}
+.section-explanation .explain-ko {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 0;
+    max-width: 920px;
+    line-height: 1.6;
+}
+.q-label .label-en { display: block; }
+.q-label .label-ko {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b7280;
+    margin-top: 1px;
+}
+.q-text .text-en { display: block; }
+.q-text .text-ko {
+    display: block;
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 2px;
+}
 
 /* Section nav */
 .nav-row {

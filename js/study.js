@@ -119,6 +119,21 @@ function renderSection(idx) {
     document.getElementById('section-heading').textContent =
         `Sample ${idx + 1} of ${CONFIG.samples.length}`;
 
+    // Inject the bilingual explanation right below the heading (replaces the
+    // static .hint paragraph on each render so text stays in sync with config).
+    const headerEl = document.querySelector('.section-header');
+    let explainEl = headerEl.querySelector('.section-explanation');
+    if (!explainEl) {
+        explainEl = document.createElement('div');
+        explainEl.className = 'section-explanation';
+        const oldHint = headerEl.querySelector('.hint');
+        if (oldHint) oldHint.remove();
+        headerEl.appendChild(explainEl);
+    }
+    explainEl.innerHTML =
+        `<p class="explain-en">${escHtml(CONFIG.section_explanation_en || '')}</p>` +
+        `<p class="explain-ko">${escHtml(CONFIG.section_explanation_ko || '')}</p>`;
+
     setProgress((idx) / CONFIG.samples.length);
     document.getElementById('progress-text').textContent =
         `Section ${idx} of ${CONFIG.samples.length}`;
@@ -181,10 +196,12 @@ function renderSection(idx) {
             block.className = 'q-block';
             const lbl = document.createElement('div');
             lbl.className = 'q-label';
-            lbl.textContent = q.label;
+            lbl.innerHTML = `<span class="label-en">${escHtml(q.label)}</span>` +
+                            (q.label_ko ? `<span class="label-ko">${escHtml(q.label_ko)}</span>` : '');
             const txt = document.createElement('div');
             txt.className = 'q-text';
-            txt.textContent = q.text;
+            txt.innerHTML = `<span class="text-en">${escHtml(q.text)}</span>` +
+                            (q.text_ko ? `<span class="text-ko">${escHtml(q.text_ko)}</span>` : '');
             block.appendChild(lbl);
             block.appendChild(txt);
 

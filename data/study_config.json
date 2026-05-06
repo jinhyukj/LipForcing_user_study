@@ -1,6 +1,9 @@
 {
-  "study_title": "Audio-Driven Lip Sync User Study",
+  "study_title": "Audio-Driven Lip Synchronization User Study",
+  "study_title_ko": "오디오 기반 립싱크 사용자 평가",
   "instructions": "You will see 10 sets of videos. Each set contains 4 videos showing the same person — the leftmost is the Ground Truth (real recording), the other three are different lip-sync model outputs (shown without labels). Watch the videos (they loop, and scrubbing one scrubs all four), then rate the three unlabeled videos on four dimensions. Headphones recommended.",
+  "section_explanation_en": "Each set below shows 4 videos of the same person. The leftmost video is the Ground Truth (the real, original recording). The other three are AI-generated lip-sync results — the model takes a still or short reference of the person and re-animates the mouth area to match a given audio track. The three result videos may use different models, and they appear without labels so your judgement isn't biased. Watch all four (they loop and the scrubber on any one moves all four together) and pay attention to: (a) how precisely the lip movements line up with the audio, (b) overall visual quality (sharpness, artifacts, blur), (c) whether the person looks like the same individual throughout the clip, and (d) how natural the motion and appearance feel as a whole. Then score each of the three unlabeled videos from 1 (poor) to 5 (excellent) on the four dimensions below.",
+  "section_explanation_ko": "아래의 각 세트에는 같은 사람의 비디오 4개가 나옵니다. 가장 왼쪽 비디오는 실제 녹화 영상(Ground Truth)이며, 나머지 세 개는 AI가 입술 움직임을 오디오에 맞게 다시 생성한 결과물입니다. 세 개의 결과 비디오는 서로 다른 모델에서 나온 것일 수 있으며, 평가가 편향되지 않도록 모델 이름은 표시되지 않습니다. 네 비디오 모두 시청하면서(반복 재생되며, 한 비디오의 진행바를 움직이면 네 개 모두 같이 움직입니다) 다음을 살펴봐 주세요: (a) 입술 움직임이 오디오와 얼마나 정확히 맞는지, (b) 전반적인 화질(선명도, 아티팩트, 흐림), (c) 영상 전체에서 인물의 정체성이 동일하게 유지되는지, (d) 움직임과 외형이 전체적으로 얼마나 자연스러운지. 그런 다음 라벨이 없는 세 비디오를 아래 네 가지 기준에 따라 1점(나쁨)부터 5점(우수)까지 평가해 주세요.",
   "video_dir": "study_videos",
   "samples": [
     "RD_Radio18_000",
@@ -38,9 +41,33 @@
     "labels": ["1 — Poor", "2", "3", "4", "5 — Excellent"]
   },
   "questions": [
-    {"id": "sync",     "label": "Sync",            "text": "How well is the video synced with the audio?"},
-    {"id": "quality",  "label": "Video Quality",   "text": "How is the visual quality of the video?"},
-    {"id": "id_pres",  "label": "ID Preservation", "text": "How well does the video preserve the identity of the person across time?"},
-    {"id": "natural",  "label": "Naturalness",     "text": "How natural does the video look?"}
+    {
+      "id": "sync",
+      "label": "Video and Audio Synchronization",
+      "label_ko": "영상과 오디오 동기화",
+      "text": "How well is the video synced with the audio?",
+      "text_ko": "영상이 오디오와 얼마나 잘 맞춰져 있나요?"
+    },
+    {
+      "id": "quality",
+      "label": "Video Quality",
+      "label_ko": "영상 품질",
+      "text": "How is the visual quality of the video?",
+      "text_ko": "영상의 시각적 품질은 어떤가요?"
+    },
+    {
+      "id": "id_pres",
+      "label": "ID Preservation",
+      "label_ko": "신원 유지",
+      "text": "How well does the video preserve the identity of the person across time?",
+      "text_ko": "영상이 시간이 지나도 인물의 정체성을 얼마나 잘 유지하나요?"
+    },
+    {
+      "id": "natural",
+      "label": "Naturalness",
+      "label_ko": "자연스러움",
+      "text": "How natural does the video look?",
+      "text_ko": "영상이 얼마나 자연스러워 보이나요?"
+    }
   ]
 }
