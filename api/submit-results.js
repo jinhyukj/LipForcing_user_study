@@ -51,6 +51,7 @@ export default async function handler(req, res) {
         body: `## User Study Results
 
 **Participant ID:** \`${results.participantId}\`
+**Phone:** ${results.phone ? '`' + results.phone + '`' : '_(not provided)_'}
 **Completed:** ${new Date(results.timestamp).toLocaleString()}
 **Duration:** ${Math.round(results.studyDuration / 1000 / 60)} minutes
 **Sections:** ${(results.responses || []).length}

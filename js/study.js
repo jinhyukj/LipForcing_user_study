@@ -11,8 +11,9 @@ const STORAGE_RESULTS  = 'lipForcingStudyResults';
 let CONFIG = null;
 let STATE = {
     participantId: null,
+    phone: null,
     startTime: null,
-    sectionIndex: 0,
+    sectionIndex: -1,        // -1 = pre-study landing not yet completed; 0..N = sections; N = done
     assignment: [],          // length = N samples; each entry = [model_a, model_b, model_c]  (display order)
     responses: [],           // length = N; each entry: { sampleStem, slots: [{model, scores: {sync,quality,id_pres,natural}}] for 3 result videos }
 };
@@ -43,7 +44,9 @@ async function init() {
     }
 
     if (!STATE.participantId) {
-        // Fresh start: assign and jump straight into the study.
+        // Fresh start: assign now (so localStorage carries the assignment),
+        // but show the landing page first to capture phone number + display
+        // explanations before the user starts rating.
         STATE.participantId = 'p_' + Math.random().toString(36).slice(2, 10);
         STATE.startTime = Date.now();
         STATE.assignment = generateAssignment();
@@ -51,14 +54,49 @@ async function init() {
             sampleStem: CONFIG.samples[i],
             slots: slot_models.map(m => ({ model: m, scores: {} })),
         }));
-        STATE.sectionIndex = 0;
+        STATE.sectionIndex = -1;
         persist();
-        renderSection(0);
+        showLanding();
+    } else if (STATE.sectionIndex < 0) {
+        showLanding();
     } else if (STATE.sectionIndex >= CONFIG.samples.length) {
         showCompletion();
     } else {
         renderSection(Math.max(0, STATE.sectionIndex));
     }
+}
+
+// ---------------- LANDING ----------------
+
+function showLanding() {
+    showScreen('pre-study-screen');
+    setProgress(0);
+    document.getElementById('progress-text').textContent = 'Before we start';
+
+    const expl = document.getElementById('landing-explanation');
+    expl.innerHTML =
+        `<p class="explain-en">${escHtml(CONFIG.section_explanation_en || '')}</p>` +
+        `<p class="explain-ko">${escHtml(CONFIG.section_explanation_ko || '')}</p>`;
+
+    const phoneInput = document.getElementById('phone-input');
+    const startBtn = document.getElementById('start-btn');
+    if (STATE.phone) phoneInput.value = STATE.phone;
+
+    const validate = () => {
+        const digits = phoneInput.value.replace(/\D/g, '');
+        startBtn.disabled = digits.length < 8;
+    };
+    validate();
+    phoneInput.oninput = validate;
+
+    startBtn.onclick = () => {
+        const phone = phoneInput.value.trim();
+        if (phone.replace(/\D/g, '').length < 8) return;
+        STATE.phone = phone;
+        STATE.sectionIndex = 0;
+        persist();
+        renderSection(0);
+    };
 }
 
 function persist() {
@@ -118,21 +156,6 @@ function renderSection(idx) {
 
     document.getElementById('section-heading').textContent =
         `Sample ${idx + 1} of ${CONFIG.samples.length}`;
-
-    // Inject the bilingual explanation right below the heading (replaces the
-    // static .hint paragraph on each render so text stays in sync with config).
-    const headerEl = document.querySelector('.section-header');
-    let explainEl = headerEl.querySelector('.section-explanation');
-    if (!explainEl) {
-        explainEl = document.createElement('div');
-        explainEl.className = 'section-explanation';
-        const oldHint = headerEl.querySelector('.hint');
-        if (oldHint) oldHint.remove();
-        headerEl.appendChild(explainEl);
-    }
-    explainEl.innerHTML =
-        `<p class="explain-en">${escHtml(CONFIG.section_explanation_en || '')}</p>` +
-        `<p class="explain-ko">${escHtml(CONFIG.section_explanation_ko || '')}</p>`;
 
     setProgress((idx) / CONFIG.samples.length);
     document.getElementById('progress-text').textContent =
@@ -450,6 +473,7 @@ function buildPayload() {
     return {
         timestamp: new Date().toISOString(),
         participantId: STATE.participantId,
+        phone: STATE.phone || null,
         studyDuration: Date.now() - STATE.startTime,
         config: {
             samples: CONFIG.samples,

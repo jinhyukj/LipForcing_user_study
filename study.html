@@ -16,15 +16,35 @@
     </header>
 
     <main>
+        <!-- Pre-study landing screen (shown before section 1) -->
+        <section id="pre-study-screen" class="screen">
+            <div class="landing-card">
+                <h2>Welcome — please read before starting</h2>
+                <h2 class="ko-heading">시작 전 안내사항</h2>
+                <div id="landing-explanation"></div>
+                <div class="phone-row">
+                    <label for="phone-input">
+                        <strong>Your phone number</strong>
+                        <span class="ko-label">전화번호</span>
+                    </label>
+                    <input id="phone-input" type="tel" placeholder="e.g. +82 10-1234-5678 / 010-1234-5678" autocomplete="tel" />
+                    <div class="phone-hint">
+                        Used so the researchers can contact you if needed. Stored with your responses on the project's GitHub.
+                        <span class="ko-hint">필요 시 연구자가 연락드리는 용도로 사용되며, 응답과 함께 프로젝트 GitHub에 저장됩니다.</span>
+                    </div>
+                </div>
+                <button id="start-btn" class="primary-btn" disabled>Start the study  ·  설문 시작</button>
+            </div>
+        </section>
+
         <!-- Section screen (rendered per sample) -->
-        <section id="section-screen" class="screen">
+        <section id="section-screen" class="screen hidden">
             <div class="section-header">
                 <h2 id="section-heading">Sample 1 of 10</h2>
                 <p class="hint">
-                    Click <strong>Play</strong> on any of the four videos to start them all.
-                    They loop together, and the scrubber on any one moves all of them.
-                    Then rate the three unlabeled videos. The leftmost (Ground Truth) is the real recording —
-                    no rating needed for it.
+                    Click <strong>Play</strong> on any of the four videos to start them all together.
+                    They loop, and the scrubber on any one moves all four.
+                    <span class="ko-hint">네 비디오 중 아무것이나 <strong>Play</strong>를 눌러 함께 재생하세요. 진행바를 움직이면 네 개 모두 같이 이동합니다.</span>
                 </p>
             </div>
             <div id="video-row"></div>
