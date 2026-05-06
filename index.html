@@ -8,11 +8,48 @@
     <style>
         .landing { max-width: 760px; margin: 40px auto; padding: 0 20px; }
         .landing h1 { font-size: 28px; margin-bottom: 4px; }
+        .landing h1 .ko { display: block; font-size: 18px; color: #6b7280; font-weight: 500; margin-top: 4px; }
         .landing .subtitle { color: #6b7280; margin-bottom: 28px; }
-        .landing section { margin-bottom: 22px; }
+        .landing .subtitle .ko { display: block; font-size: 14px; color: #9ca3af; margin-top: 2px; }
+        .landing section { margin-bottom: 24px; }
         .landing h2 { font-size: 18px; margin-bottom: 8px; }
+        .landing h2 .ko { color: #6b7280; font-size: 14px; font-weight: 500; margin-left: 6px; }
         .landing ol, .landing ul { margin-left: 20px; }
-        .landing li { margin-bottom: 4px; }
+        .landing li { margin-bottom: 6px; }
+        .landing .ko-line { display: block; color: #6b7280; font-size: 13px; margin-top: 2px; }
+        .landing p { margin: 0 0 10px 0; }
+        .landing p .ko-line { font-size: 13px; }
+        .phone-block {
+            background: #f9fafb;
+            padding: 16px 18px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            margin-top: 8px;
+        }
+        .phone-block label { display: block; font-weight: 600; margin-bottom: 6px; }
+        .phone-block label .optional-tag {
+            font-size: 12px; color: #16a34a;
+            margin-left: 8px; font-weight: 500;
+            background: #dcfce7; padding: 2px 8px;
+            border-radius: 10px; vertical-align: middle;
+        }
+        .phone-block label .ko { color: #6b7280; font-size: 12px; margin-left: 6px; font-weight: 400; }
+        .phone-block input[type=tel] {
+            width: 100%;
+            max-width: 380px;
+            padding: 9px 12px;
+            font-size: 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            background: white;
+        }
+        .phone-block input[type=tel]:focus {
+            border-color: #2563eb;
+            outline: 2px solid #93c5fd;
+            outline-offset: 0;
+        }
+        .phone-block .hint { font-size: 12px; color: #6b7280; margin-top: 6px; line-height: 1.5; }
+        .phone-block .hint .ko-line { color: #9ca3af; }
         .start-wrap { text-align: center; margin: 36px 0; }
         .start-btn {
             background: #2563eb; color: white; padding: 14px 32px;
@@ -21,48 +58,126 @@
         }
         .start-btn:hover { background: #1d4ed8; }
         .meta { color: #6b7280; font-size: 13px; margin-top: 8px; }
+        .meta .ko-line { color: #9ca3af; font-size: 12px; margin-top: 2px; }
     </style>
 </head>
 <body>
     <div class="landing">
-        <h1>Audio-Driven Lip Synchronization User Study</h1>
-        <div class="subtitle">Comparing lip-sync video models</div>
+        <h1>
+            Audio-Driven Lip Synchronization User Study
+            <span class="ko">오디오 기반 립싱크 사용자 평가</span>
+        </h1>
+        <div class="subtitle">
+            Comparing lip-sync video models
+            <span class="ko">립싱크 모델 비교 평가</span>
+        </div>
 
         <section>
-            <h2>What you'll do</h2>
-            <p>You'll see 10 sets of 4 short videos. Each set shows the same person:</p>
+            <h2>What you'll do <span class="ko">평가 방법</span></h2>
+            <p>
+                You'll see 10 sets of 4 short videos. Each set shows the same person:
+                <span class="ko-line">총 10개의 세트가 나오며, 각 세트는 4개의 짧은 비디오로 구성되어 있습니다. 모든 비디오는 같은 인물을 보여줍니다.</span>
+            </p>
             <ul>
-                <li>The leftmost video is the <strong>Ground Truth</strong> (real recording).</li>
-                <li>The other three are different lip-sync model outputs, shown without labels.</li>
+                <li>
+                    The leftmost video is the <strong>Ground Truth</strong> (real recording).
+                    <span class="ko-line">가장 왼쪽 비디오는 <strong>Ground Truth</strong>(실제 녹화 영상)입니다.</span>
+                </li>
+                <li>
+                    The other three are different lip-sync model outputs, shown without labels.
+                    <span class="ko-line">나머지 세 개는 서로 다른 립싱크 모델의 결과물이며, 라벨 없이 표시됩니다.</span>
+                </li>
             </ul>
-            <p>For each set, watch the four videos (they loop, and the scrubber on any one moves all four together), then rate the three unlabeled videos on four dimensions.</p>
+            <p>
+                For each set, watch the four videos (they loop, and the scrubber on any one moves all four together), then rate the three unlabeled videos on four dimensions.
+                <span class="ko-line">각 세트에서 네 비디오를 모두 시청한 후(반복 재생되며, 하나의 진행바를 움직이면 네 개 모두 같이 이동합니다), 라벨이 없는 세 개의 비디오를 네 가지 기준으로 평가해 주세요.</span>
+            </p>
         </section>
 
         <section>
-            <h2>Questions you'll be asked (per video)</h2>
+            <h2>Questions you'll be asked (per video) <span class="ko">평가 항목 (비디오 당)</span></h2>
             <ol>
-                <li><strong>Sync</strong> — How well is the video synced with the audio?</li>
-                <li><strong>Video Quality</strong> — How is the visual quality of the video?</li>
-                <li><strong>ID Preservation</strong> — How well does the video preserve the identity of the person across time?</li>
-                <li><strong>Naturalness</strong> — How natural does the video look?</li>
+                <li>
+                    <strong>Video and Audio Synchronization</strong> — How well is the video synced with the audio?
+                    <span class="ko-line"><strong>영상과 오디오 동기화</strong> — 영상이 오디오와 얼마나 잘 맞춰져 있나요?</span>
+                </li>
+                <li>
+                    <strong>Video Quality</strong> — How is the visual quality of the video?
+                    <span class="ko-line"><strong>영상 품질</strong> — 영상의 시각적 품질은 어떤가요?</span>
+                </li>
+                <li>
+                    <strong>ID Preservation</strong> — How well does the video preserve the identity of the person across time?
+                    <span class="ko-line"><strong>신원 유지</strong> — 영상이 시간이 지나도 인물의 정체성을 얼마나 잘 유지하나요?</span>
+                </li>
+                <li>
+                    <strong>Naturalness</strong> — How natural does the video look?
+                    <span class="ko-line"><strong>자연스러움</strong> — 영상이 얼마나 자연스러워 보이나요?</span>
+                </li>
             </ol>
-            <p>Each on a 1-5 scale (1 = poor, 5 = excellent). The Ground Truth video does <em>not</em> need to be rated.</p>
+            <p>
+                Each on a 1–5 scale (1 = poor, 5 = excellent). The Ground Truth video does <em>not</em> need to be rated.
+                <span class="ko-line">각 항목은 1점(나쁨)부터 5점(우수)까지로 평가합니다. Ground Truth 비디오는 평가하지 <em>않으셔도</em> 됩니다.</span>
+            </p>
         </section>
 
         <section>
-            <h2>Practical notes</h2>
+            <h2>Practical notes <span class="ko">참고 사항</span></h2>
             <ul>
-                <li>Headphones recommended.</li>
-                <li>Allow ~10–15 minutes.</li>
-                <li>Your progress is saved locally as you go — if your browser closes mid-study, you can resume from the same place.</li>
-                <li>At the end, your responses are submitted automatically. No personal information is collected.</li>
+                <li>
+                    Headphones recommended.
+                    <span class="ko-line">헤드폰 사용을 권장합니다.</span>
+                </li>
+                <li>
+                    Allow ~10–15 minutes.
+                    <span class="ko-line">약 10–15분 정도 소요됩니다.</span>
+                </li>
+                <li>
+                    Your progress is saved locally as you go — if your browser closes mid-study, you can resume from the same place.
+                    <span class="ko-line">진행 상황은 자동으로 저장되어, 도중에 브라우저를 닫더라도 같은 지점부터 이어서 진행할 수 있습니다.</span>
+                </li>
+                <li>
+                    At the end, your responses are submitted automatically. The only personal information stored is the phone number, if you choose to provide it below.
+                    <span class="ko-line">설문이 끝나면 응답이 자동으로 제출됩니다. 저장되는 개인정보는 아래에서 직접 입력하신 전화번호(선택 사항)뿐입니다.</span>
+                </li>
             </ul>
+        </section>
+
+        <section class="phone-block">
+            <label for="phone-input">
+                Your phone number
+                <span class="optional-tag">(optional / 선택 사항)</span>
+                <span class="ko">전화번호</span>
+            </label>
+            <input id="phone-input" type="tel" placeholder="e.g. +82 10-1234-5678 / 010-1234-5678" autocomplete="tel" />
+            <div class="hint">
+                Optional — leave blank if you'd rather not share. If filled in, it's used so the researchers can contact you if needed, and stored alongside your responses on the project's GitHub.
+                <span class="ko-line">선택 사항입니다. 공유를 원하지 않으시면 비워 두셔도 됩니다. 입력하실 경우, 필요 시 연구자가 연락드리는 용도로 사용되며 응답과 함께 프로젝트 GitHub에 저장됩니다.</span>
+            </div>
         </section>
 
         <div class="start-wrap">
-            <button class="start-btn" onclick="window.location.href='study.html'">Start the study</button>
-            <div class="meta">By starting, you agree your anonymized responses will be used for academic research.</div>
+            <button class="start-btn" id="start-btn">Start the study  ·  설문 시작</button>
+            <div class="meta">
+                By starting, you agree your responses will be used for academic research.
+                <span class="ko-line">시작하시면 연구 목적의 응답 사용에 동의하시는 것으로 간주됩니다.</span>
+            </div>
         </div>
     </div>
+
+    <script>
+        // Save phone to localStorage so study.html can read it on the next page.
+        // Empty input → null (not stored as empty string).
+        document.getElementById('start-btn').addEventListener('click', () => {
+            const phone = document.getElementById('phone-input').value.trim();
+            try {
+                if (phone) {
+                    localStorage.setItem('lipForcingPhonePrefill', phone);
+                } else {
+                    localStorage.removeItem('lipForcingPhonePrefill');
+                }
+            } catch {}
+            window.location.href = 'study.html';
+        });
+    </script>
 </body>
 </html>

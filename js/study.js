@@ -44,54 +44,32 @@ async function init() {
     }
 
     if (!STATE.participantId) {
-        // Fresh start: assign now (so localStorage carries the assignment),
-        // but show the landing page first to capture phone number + display
-        // explanations before the user starts rating.
+        // Fresh start: assign and dive straight into section 1. The phone
+        // number, if any, was captured on index.html and stashed in
+        // localStorage under 'lipForcingPhonePrefill' — pick it up here
+        // and consume the prefill so a refresh doesn't re-stamp it.
         STATE.participantId = 'p_' + Math.random().toString(36).slice(2, 10);
         STATE.startTime = Date.now();
+        try {
+            const prefill = localStorage.getItem('lipForcingPhonePrefill');
+            STATE.phone = prefill ? prefill : null;
+            localStorage.removeItem('lipForcingPhonePrefill');
+        } catch {
+            STATE.phone = null;
+        }
         STATE.assignment = generateAssignment();
         STATE.responses = STATE.assignment.map((slot_models, i) => ({
             sampleStem: CONFIG.samples[i],
             slots: slot_models.map(m => ({ model: m, scores: {} })),
         }));
-        STATE.sectionIndex = -1;
+        STATE.sectionIndex = 0;
         persist();
-        showLanding();
-    } else if (STATE.sectionIndex < 0) {
-        showLanding();
+        renderSection(0);
     } else if (STATE.sectionIndex >= CONFIG.samples.length) {
         showCompletion();
     } else {
         renderSection(Math.max(0, STATE.sectionIndex));
     }
-}
-
-// ---------------- LANDING ----------------
-
-function showLanding() {
-    showScreen('pre-study-screen');
-    setProgress(0);
-    document.getElementById('progress-text').textContent = 'Before we start';
-
-    const expl = document.getElementById('landing-explanation');
-    expl.innerHTML =
-        `<p class="explain-en">${escHtml(CONFIG.section_explanation_en || '')}</p>` +
-        `<p class="explain-ko">${escHtml(CONFIG.section_explanation_ko || '')}</p>`;
-
-    const phoneInput = document.getElementById('phone-input');
-    const startBtn = document.getElementById('start-btn');
-    if (STATE.phone) phoneInput.value = STATE.phone;
-
-    // Phone number is optional — Start button is always enabled.
-    startBtn.disabled = false;
-
-    startBtn.onclick = () => {
-        const phone = phoneInput.value.trim();
-        STATE.phone = phone || null;
-        STATE.sectionIndex = 0;
-        persist();
-        renderSection(0);
-    };
 }
 
 function persist() {
