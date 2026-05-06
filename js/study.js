@@ -277,10 +277,27 @@ function makeVideoCell({label, url, muted, isGt}) {
 
     // Force first frame to render so the element doesn't show blank when paused.
     // preload="auto" loads bytes but doesn't always paint the first frame; a
-    // tiny seek nudges the renderer.
-    v.addEventListener('loadedmetadata', () => {
-        try { v.currentTime = 0.01; } catch {}
-    }, { once: true });
+    // tiny seek nudges the renderer. Different browsers (esp. Safari, mobile
+    // Chrome) need the nudge at different lifecycle events, so try at all of
+    // loadedmetadata / loadeddata / canplay, plus a delayed fallback. Each
+    // attempt is idempotent — once one paints, the rest are no-ops.
+    let firstFramePainted = false;
+    const nudgeFirstFrame = () => {
+        if (firstFramePainted) return;
+        if (v.readyState < 1) return;
+        try {
+            v.currentTime = Math.max(0.01, v.currentTime);
+            firstFramePainted = true;
+        } catch (e) {
+            // try again later via the next event in the chain
+        }
+    };
+    v.addEventListener('loadedmetadata', nudgeFirstFrame);
+    v.addEventListener('loadeddata',     nudgeFirstFrame);
+    v.addEventListener('canplay',        nudgeFirstFrame);
+    // Last-resort fallback: 800ms after creation, if still nothing painted, force it.
+    setTimeout(nudgeFirstFrame, 800);
+    setTimeout(nudgeFirstFrame, 2000);
 
     const seekRow = document.createElement('div');
     seekRow.className = 'seek-row';
