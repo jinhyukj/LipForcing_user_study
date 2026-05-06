@@ -121,7 +121,7 @@ def decode_choice(comparison_name, video_filename, choice, order_sheets):
     else:
         return None, None
 
-def collect_issues(token, owner='paulcho98', repo='DeepSink_user_study'):
+def collect_issues(token, owner='jinhyukj', repo='LipForcing_user_study'):
     """GitHub Issues에서 사용자 연구 결과 수집"""
     headers = {
         'Authorization': f'token {token}',

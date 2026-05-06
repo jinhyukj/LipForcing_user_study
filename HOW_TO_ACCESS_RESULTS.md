@@ -59,7 +59,7 @@ The user study collects answers in real-time and stores them in two ways:
    - `userStudyFinalResults` - Final results (if completed)
 
 ### Option 2: From GitHub Issues
-1. Go to: `https://github.com/paulcho98/DeepSink_user_study/issues`
+1. Go to: `https://github.com/jinhyukj/LipForcing_user_study/issues`
 2. Look for issues with label `user-study-result`
 3. Each issue contains:
    - Participant ID
@@ -176,7 +176,7 @@ python aggregate_results_from_github.py --token YOUR_GITHUB_TOKEN
    - ✅ **SECURE**: Token is never exposed to client-side JavaScript
 
 4. **Repository Configuration**:
-   - Repository: `paulcho98/DeepSink_user_study`
+   - Repository: `jinhyukj/LipForcing_user_study`
    - Issues are created with labels: `user-study-result`, `data-collection`
 
 ## Troubleshooting
@@ -193,7 +193,7 @@ python aggregate_results_from_github.py --token YOUR_GITHUB_TOKEN
   - ✅ **Check browser console**: Look for error messages about the API call
 - **Missing data**: Check if study was completed (not just started)
 - **Python scripts not working**: 
-  - Verify repository name is correct (`paulcho98/DeepSink_user_study`)
+  - Verify repository name is correct (`jinhyukj/LipForcing_user_study`)
   - Check that comparison folder names match your study configuration
   - Ensure order sheets exist in each comparison folder
 - **Videos not loading on Vercel**:

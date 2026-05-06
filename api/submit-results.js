@@ -26,8 +26,8 @@ export default async function handler(req, res) {
     }
 
     // GitHub API configuration
-    const githubOwner = 'paulcho98';
-    const githubRepo = 'DeepSink_user_study';
+    const githubOwner = 'jinhyukj';
+    const githubRepo = 'LipForcing_user_study';
 
     // Prepare issue data
     const issueData = {

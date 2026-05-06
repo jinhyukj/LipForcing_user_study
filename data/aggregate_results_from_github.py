@@ -21,8 +21,8 @@ class GitHubIssuesAggregator(UserStudyAggregator):
     def __init__(self, github_token, base_dir=None):
         super().__init__(base_dir)
         self.github_token = github_token
-        self.repo_owner = "paulcho98"
-        self.repo_name = "DeepSink_user_study"
+        self.repo_owner = "jinhyukj"
+        self.repo_name = "LipForcing_user_study"
 
     def fetch_github_issues(self):
         """Fetch all open issues from GitHub repository"""
@@ -201,7 +201,7 @@ def main():
     print("=" * 60)
     print("GITHUB ISSUES RESULTS AGGREGATION")
     print("=" * 60)
-    print(f"Repository: paulcho98/DeepSink_user_study")
+    print(f"Repository: jinhyukj/LipForcing_user_study")
     print(f"Output directory: {args.output_dir}")
     print()
 
