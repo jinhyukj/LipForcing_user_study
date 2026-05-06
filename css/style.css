@@ -383,21 +383,13 @@ button {
 .answered-status { color: #6b7280; font-size: 13px; }
 
 /* Completion screen */
-#completion-screen { text-align: center; padding: 40px 20px; }
-#submission-status { margin: 16px 0; font-weight: 600; }
+#completion-screen { text-align: center; padding: 60px 20px; }
+#completion-screen h2 { font-size: 28px; }
+#completion-screen p { font-size: 16px; color: #4b5563; }
+#completion-screen .ko-thanks { color: #6b7280; font-size: 15px; margin-top: 4px; }
+#submission-status { margin-top: 24px; font-weight: 600; font-size: 15px; }
 #submission-status.ok { color: #047857; }
 #submission-status.err { color: #b91c1c; }
-#response-dump {
-    background: #1c2540;
-    color: #c5cce0;
-    padding: 16px;
-    border-radius: 6px;
-    text-align: left;
-    overflow-x: auto;
-    font-size: 12px;
-    max-height: 400px;
-    overflow-y: auto;
-}
 
 /* Responsive: stack to 2 columns at narrower viewports */
 @media (max-width: 1024px) {

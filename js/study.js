@@ -430,7 +430,8 @@ async function showCompletion() {
         `Done — ${CONFIG.samples.length} of ${CONFIG.samples.length}`;
 
     const payload = buildPayload();
-    document.getElementById('response-dump').textContent = JSON.stringify(payload, null, 2);
+    // Keep payload in localStorage as a backup so the researcher can recover
+    // it from the participant's browser if auto-submission fails. NOT displayed.
     localStorage.setItem(STORAGE_RESULTS, JSON.stringify(payload));
 
     const status = document.getElementById('submission-status');
@@ -446,21 +447,13 @@ async function showCompletion() {
             const txt = await res.text();
             throw new Error(`HTTP ${res.status}: ${txt}`);
         }
-        const data = await res.json();
+        await res.json();
         status.className = 'ok';
-        status.textContent = '✓ Submitted successfully. Thank you!';
-        if (data.issue_url) {
-            const a = document.createElement('a');
-            a.href = data.issue_url;
-            a.target = '_blank';
-            a.textContent = '(view receipt)';
-            a.style.marginLeft = '8px';
-            status.appendChild(a);
-        }
+        status.textContent = '✓ Submitted successfully.';
     } catch (e) {
         console.error('Submission error:', e);
         status.className = 'err';
-        status.textContent = '⚠ Auto-submission failed. Your responses are saved locally — please send the JSON below to the researcher.';
+        status.textContent = '⚠ Auto-submission failed. Please contact the researcher; your responses are still saved on this device.';
     }
 }
 
