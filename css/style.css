@@ -83,8 +83,9 @@ button {
 .section-header { margin-bottom: 14px; }
 .section-header .hint {
     color: #4b5563;
-    font-size: 14px;
+    font-size: 15px;
     max-width: 920px;
+    line-height: 1.5;
 }
 
 /* Four videos in a row */
@@ -103,7 +104,7 @@ button {
     flex-direction: column;
 }
 .video-cell .video-label {
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 700;
     text-align: center;
     margin-bottom: 6px;
@@ -157,18 +158,20 @@ button {
     padding: 18px;
     font-style: italic;
 }
-.q-block { margin-bottom: 12px; }
+.q-block { margin-bottom: 16px; }
 .q-block:last-child { margin-bottom: 0; }
 .q-label {
     font-weight: 600;
-    font-size: 13px;
-    margin-bottom: 4px;
+    font-size: 16px;
+    margin-bottom: 5px;
     color: #1f2937;
+    line-height: 1.35;
 }
 .q-text {
-    font-size: 12px;
+    font-size: 14px;
     color: #6b7280;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+    line-height: 1.4;
 }
 .scale {
     display: flex;
@@ -194,11 +197,12 @@ button {
 .radio-bullet {
     flex: 1;
     text-align: center;
-    padding: 8px 0;
+    padding: 10px 0;
     border: 1px solid #d1d5db;
     border-radius: 4px;
     background: #f9fafb;
-    font-size: 13px;
+    font-size: 16px;
+    font-weight: 500;
     transition: background 0.1s, border-color 0.1s, color 0.1s;
     display: flex;
     align-items: center;
@@ -311,8 +315,9 @@ button {
 .section-header .hint .ko-hint {
     display: block;
     color: #6b7280;
-    font-size: 12px;
-    margin-top: 2px;
+    font-size: 14px;
+    margin-top: 4px;
+    line-height: 1.5;
 }
 
 /* Absolute-evaluation callout (shown on every section) */
@@ -321,22 +326,22 @@ button {
     border: 1px solid #f59e0b;
     border-left: 4px solid #f59e0b;
     color: #78350f;
-    padding: 10px 14px;
+    padding: 12px 16px;
     border-radius: 5px;
-    margin: 10px 0;
-    font-size: 13px;
-    line-height: 1.5;
+    margin: 12px 0;
+    font-size: 15px;
+    line-height: 1.55;
     max-width: 920px;
 }
 .absolute-eval-callout strong { color: #78350f; }
 .absolute-eval-callout .ko-callout {
     display: block;
-    margin-top: 6px;
-    padding-top: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
     border-top: 1px dashed rgba(120, 53, 15, 0.25);
     color: #92400e;
-    font-size: 12px;
-    line-height: 1.55;
+    font-size: 14px;
+    line-height: 1.6;
 }
 
 /* Bilingual labels — small Korean line under English line */
@@ -358,17 +363,18 @@ button {
 .q-label .label-en { display: block; }
 .q-label .label-ko {
     display: block;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
     color: #6b7280;
-    margin-top: 1px;
+    margin-top: 2px;
 }
 .q-text .text-en { display: block; }
 .q-text .text-ko {
     display: block;
-    font-size: 11px;
+    font-size: 13px;
     color: #9ca3af;
-    margin-top: 2px;
+    margin-top: 3px;
+    line-height: 1.4;
 }
 
 /* Section nav */

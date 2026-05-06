@@ -181,8 +181,8 @@ function renderSection(idx) {
         cell.className = 'rating-cell';
         const heading = document.createElement('div');
         heading.style.fontWeight = '700';
-        heading.style.fontSize = '14px';
-        heading.style.marginBottom = '10px';
+        heading.style.fontSize = '17px';
+        heading.style.marginBottom = '12px';
         heading.style.color = '#374151';
         heading.textContent = `Video ${String.fromCharCode(65 + slotIdx)}`;
         cell.appendChild(heading);
